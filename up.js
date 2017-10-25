@@ -136,7 +136,7 @@ const start = (loginUser) => {
             var globalCounter = 0;
             function loop() {
                 function internalLoop() {
-                    if(counter > max){
+                    if(counter >= max){
                         clearInterval(internalPointer);
                         counter = 0;
                         doNext= true;
@@ -229,7 +229,7 @@ const removeNotFollowers =  (loginUser) => {
             function loop() {
 
                 function internalLoop() {
-                    if(counter > max){
+                    if(counter >= max){
                         clearInterval(internalPointer);
                         counter = 0;
                         doNext= true;
