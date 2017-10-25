@@ -323,8 +323,6 @@ const createRelationship = (username) => {
             }
         }).then((relationship)=>{
             if(relationship){
-                process.stdout.clearLine();  
-                process.stdout.cursorTo(0);  
                 console.log('[OK]');
                 return User.findOne({segment: segment, username: username});
             } else {
@@ -362,9 +360,7 @@ const destroyRelationship = (username) => {
             } else {
                 resolve();
             }
-        }).then((relationship)=>{
-            process.stdout.clearLine();  
-            process.stdout.cursorTo(0);  
+        }).then((relationship)=>{ 
             console.log('[OK]');
             if(relationship){
                 return User.findOne({segment: segment, username: username});
@@ -446,16 +442,12 @@ const gettUserInfo = (loginUser, targerUsername) => {
             };
             console.log('Getting ' + targerUsername +' followings');
             return [data, getFollowing( data.currentUser)];
-        }).spread(function(data, followings) {
-            process.stdout.clearLine();  
-            process.stdout.cursorTo(0);  
+        }).spread(function(data, followings) { 
             console.log('[OK]');
             data.followings = followings;
             console.log('Getting ' + targerUsername +' followers');
             return [data, getFollowers( data.currentUser, data.followerCount)];
-        }).spread(function(data, followers) {
-            process.stdout.clearLine();  
-            process.stdout.cursorTo(0);  
+        }).spread(function(data, followers) { 
             console.log('[OK]');
             data.followers = followers;
             resolve(data);
@@ -615,9 +607,7 @@ const createFile = (filename) => {
     if(!post){
         post ='';
     }
-    process.stdout.clearLine();  // clear current text
-    process.stdout.cursorTo(0);  // move cursor to beginning of line
-    process.stdout.write( number+'% ' + post);
+    console.log( number+'% ' + post);
   }
 
   
