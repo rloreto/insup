@@ -8,6 +8,7 @@
     "each-async": "^1.1.1",
     "fs": "0.0.1-security",
     "instagram-private-api": "^0.6.7",
+    "moment": "^2.19.1",
     "mongoose": "^4.12.3",
     "node-cache": "^4.1.1",
     "node-serialize": "0.0.4",
