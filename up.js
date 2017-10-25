@@ -26,6 +26,7 @@ var User = mongoose.model('User', {
     userId:String, 
     username:String, 
     isFollower: Boolean, 
+    isPrivate: Boolean,
     providerId: String, 
     createdDate: Date,
     requestDate: Date,
@@ -276,6 +277,12 @@ const createRelationship = (username) => {
                     console.log('Creating relationship to ' + username );
                     return Client.Relationship.create(currentSession, user.id)
                 } else {
+                    User.findOne({segment: segment, username: username}).then((user)=>{
+                        if(user){
+                            user.isPrivate = true;
+                        }
+                        user.save();
+                    })
                     resolve(false);
                 }
                 
