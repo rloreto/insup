@@ -128,7 +128,7 @@ const start = (loginUser) => {
                 unfollowed: {$ne: true},
                 isFollower: {$ne: true},
                 isPrivate: {$ne: true},
-            }).limit(1000).
+            }).
             sort({ order: 1 })];
 
         }).spread((data, targetUsers) => {

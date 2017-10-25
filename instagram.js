@@ -82,7 +82,6 @@ program
 .option('-r, --remove', 'Remove not followers')
 .parse(process.argv);
 
-debugger;
 
 if (program.args.length === 0 || program.start){
 
