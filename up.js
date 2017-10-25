@@ -123,12 +123,13 @@ const start = (loginUser) => {
             return [data, User.find({ 
                 requestNumber: 0,
                 unfollowed: {$ne: true},
-                isFollower: {$ne: true}
+                isFollower: {$ne: true},
+                isPrivate: {$ne: true},
             }).
             sort({ order: 1 })];
 
         }).spread((data, targetUsers) => {
-            var max = 60;
+            var max = 50;
             var counter = 0;
             var iteration = 0;
             var doNext = true;
@@ -221,7 +222,7 @@ const removeNotFollowers =  (loginUser) => {
         }).
         then((notFollowers)=>{
             notFollowers = notFollowers.reverse();
-            var max = 60;
+            var max = 50;
             var counter = 0;
             var iteration = 0;
             var doNext = true;
