@@ -224,7 +224,6 @@ const removeNotFollowers =  (loginUser) => {
             notFollowers = notFollowers.reverse();
             var max = 50;
             var counter = 0;
-            var iteration = 0;
             var doNext = true;
             var globalCounter = 0;
             function loop() {
