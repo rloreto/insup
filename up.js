@@ -5,7 +5,7 @@ var userId;
 var password;
 var maxOperationsPerHour = 50;
 var upPeriodStart = 8;
-var upPeriodEnd = 24;
+var upPeriodEnd = 23;
 
 var util = require('util');
 var fs = require('fs');

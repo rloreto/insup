@@ -82,7 +82,9 @@ program
 .option('-r, --remove', 'Remove not followers')
 .parse(process.argv);
 
-if (program.start){
+debugger;
+
+if (program.args.length === 0 || program.start){
 
     var username = process.env.USER;
     var pwd = process.env.PWD;
