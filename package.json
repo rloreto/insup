@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "assert": "^1.4.1",
+    "bluebird": "^3.5.1",
+    "commander": "^2.11.0",
+    "commander-plus": "0.0.6",
+    "dotenv": "^4.0.0",
+    "each-async": "^1.1.1",
+    "fs": "0.0.1-security",
+    "instagram-private-api": "^0.6.7",
+    "mongoose": "^4.12.3",
+    "node-cache": "^4.1.1",
+    "node-serialize": "0.0.4",
+    "process": "^0.11.10",
+    "project-oxford": "^1.8.0",
+    "request": "^2.83.0"
+  }
+}
