@@ -4,7 +4,8 @@ var segment= 'quierobesarte.es';
 var userId;
 var password;
 var maxOperationsPerHour = 50;
-var upPeriodStart = 8;
+var maxRemoveOperationsPerHour = 60;
+var upPeriodStart = 9;
 var upPeriodEnd = 23;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
@@ -269,7 +270,7 @@ const removeNotFollowers =  (loginUser) => {
         }).
         then((notFollowers)=>{
             notFollowers = notFollowers.reverse();
-            var max = maxOperationsPerHour;
+            var max = maxRemoveOperationsPerHour;
             var counter = 0;
             var doNext = true;
             var globalCounter = 0;
