@@ -7,6 +7,7 @@ var maxOperationsPerHour = 50;
 var upPeriodStart = 8;
 var upPeriodEnd = 23;
 var maxGetUsers = 1000;
+var loopTime = 60 * 60 * 1000;
 
 require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
@@ -252,7 +253,7 @@ const start = (loginUser) => {
             }
 
             loop();
-            var loopPointer = setInterval(loop,  60 * 1000);
+            var loopPointer = setInterval(loop,  loopTime);
 
         })
     })
@@ -308,7 +309,7 @@ const removeNotFollowers =  (loginUser) => {
             }
 
             loop();
-            var loopPointer = setInterval(loop, 60 * 60 * 1000);
+            var loopPointer = setInterval(loop, loopTime);
         })
     });
     
