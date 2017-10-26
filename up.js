@@ -355,7 +355,7 @@ const createRelationship = (username) => {
             }
         }).then((relationship)=>{
             if(relationship){
-                console.log('[OK]');
+                console.log('OK');
                 return User.findOne({segment: segment, username: username});
             } else {
                 resolve(false);
