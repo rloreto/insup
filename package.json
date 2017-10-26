@@ -4,6 +4,7 @@
     "bluebird": "^3.5.1",
     "commander": "^2.11.0",
     "commander-plus": "0.0.6",
+    "console-stamp": "^0.2.6",
     "dotenv": "^4.0.0",
     "each-async": "^1.1.1",
     "fs": "0.0.1-security",

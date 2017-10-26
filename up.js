@@ -6,7 +6,9 @@ var password;
 var maxOperationsPerHour = 50;
 var upPeriodStart = 8;
 var upPeriodEnd = 23;
+var maxGetUsers = 1000;
 
+require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
 var fs = require('fs');
 var process = require('process')
@@ -114,6 +116,27 @@ const updateTargetFollowers = (loginUser, targetUsername) => {
 };
 
 
+const getUsers = (numLimits) =>{
+    var promise = new Promise(function(resolve) {
+        var query = User.find({ 
+            requestNumber: 0,
+            unfollowed: {$ne: true},
+            isFollower: {$ne: true},
+            isPrivate: {$ne: true},
+        });
+        if(numLimits && Number.isInteger(numLimits)) {
+            query = query.limit(numLimits);
+        }
+        query.sort({ order: 1 }).then((users)=>{
+            console.log('Recieved ' + users.length + 'new users.')
+            resolve(users);
+
+        })
+  
+    });
+
+    return promise;
+}
 
 
 const start = (loginUser) => {
@@ -122,94 +145,103 @@ const start = (loginUser) => {
         getCurrentUserInfo(loginUser).then((currentUserInfo)=>{
             var data = {
                 currentUserInfo: currentUserInfo
-            }         
-            return [data, User.find({ 
-                requestNumber: 0,
-                unfollowed: {$ne: true},
-                isFollower: {$ne: true},
-                isPrivate: {$ne: true},
-            }).
-            sort({ order: 1 })];
-
-        }).spread((data, targetUsers) => {
-            debugger;
+            };      
             var max = maxOperationsPerHour;
             var counter = 0;
             var iteration = 0;
             var doNext = true;
+            var internalCounter = 0;
             var globalCounter = 0;
+            var targetUsers = [];
+
+            getUsers(maxGetUsers).then((users) => {
+                targetUsers = users;
+            })
+
             function loop() {
                 var date = new Date();
                 var currentHour = date.getHours();
-        
+                
                 if(!(upPeriodStart <= currentHour && currentHour <= upPeriodEnd)) {
                     clearInterval(loopPointer);
                     removeNotFollowers(loginUser);
                 } else {
                     function internalLoop() {
-                        if(counter >= max){
-                            clearInterval(internalPointer);
-                            counter = 0;
-                            doNext= true;
-                        } else {
-                            if(doNext) {
-                                var item = targetUsers[globalCounter];
-                                doNext = false;
-                                globalCounter++;
-    
-                                //TODO Remove
-                                item.isFaceEval = true;
-    
-                                if(item && !item.isFaceEval ){
-                                    
-                                    getFaceInfo(item.pictureUrl.replace('s150x150','')).then((faceInfo)=> {
-                                        if(faceInfo){
-                                            item.gender = faceInfo.gender;
-                                            item.age = faceInfo.age;
-                                            item.lipMakeup = faceInfo.makeup.lipMakeup;
-                                            item.eyeMakeup = faceInfo.makeup.eyeMakeup;
-                                        }
+                        if(targetUsers && targetUsers.length > 0) {
+                           
+                            if(internalCounter + 1 > targetUsers.length) {
+                                internalCounter = 0;
+                                targetUsers = [];
+                                getUsers(maxGetUsers).then((users) => {
+                                    targetUsers = users;
+                                })
+                            } else {
+                                if(counter >= max){
+                                    clearInterval(internalPointer);
+                                    counter = 0;
+                                    doNext= true;
+                                } else {
+                                    if(doNext) {
+                                        var item = targetUsers[internalCounter];
+                                        internalCounter++;
+                                        doNext = false;
+                                        globalCounter++;
+            
+                                        //TODO Remove
                                         item.isFaceEval = true;
-                                        item.isFollower = isFollower(item.userId, data.currentUserInfo.followers );
-                                        item.save().then((respose)=>{
-                                            //if(!item.isFollower && item.gender === "female"){
-                                            if(!item.isFollower){
-                                                createRelationship(item.username).then((added)=>{
-                                                    if(added){
-                                                        counter++;
-                                                    }
-                                                    doNext= true;
-                                                })
-                                            } else {
-                                                doNext= true;
-                                            }
-                                            console.log(counter + '-' + globalCounter );
+            
+                                        if(item && !item.isFaceEval ){
                                             
-                                        });       
-                                    })
-                                } else if ( item && item.isFaceEval ) {
-                                    item.isFollower = isFollower(item.userId, data.currentUserInfo.followers );
-                                    item.save().then((respose)=>{
-                                        //if(!item.isFollower && item.gender === "female"){
-                                        if(!item.isFollower){
-                                            createRelationship(item.username).then((added)=>{
-                                                if(added){
-                                                    counter++;
+                                            getFaceInfo(item.pictureUrl.replace('s150x150','')).then((faceInfo)=> {
+                                                if(faceInfo){
+                                                    item.gender = faceInfo.gender;
+                                                    item.age = faceInfo.age;
+                                                    item.lipMakeup = faceInfo.makeup.lipMakeup;
+                                                    item.eyeMakeup = faceInfo.makeup.eyeMakeup;
                                                 }
-                                                doNext= true;
-                                               
+                                                item.isFaceEval = true;
+                                                item.isFollower = isFollower(item.userId, data.currentUserInfo.followers );
+                                                item.save().then((respose)=>{
+                                                    //if(!item.isFollower && item.gender === "female"){
+                                                    if(!item.isFollower){
+                                                        createRelationship(item.username).then((added)=>{
+                                                            if(added){
+                                                                counter++;
+                                                            }
+                                                            doNext= true;
+                                                        })
+                                                    } else {
+                                                        doNext= true;
+                                                    }
+                                                    console.log(counter + '-' + globalCounter );
+                                                    
+                                                });       
                                             })
-                                        } else {
-                                            doNext= true;
+                                        } else if ( item && item.isFaceEval ) {
+                                            item.isFollower = isFollower(item.userId, data.currentUserInfo.followers );
+                                            item.save().then((respose)=>{
+                                                //if(!item.isFollower && item.gender === "female"){
+                                                if(!item.isFollower){
+                                                    createRelationship(item.username).then((added)=>{
+                                                        if(added){
+                                                            counter++;
+                                                        }
+                                                        doNext= true;
+                                                       
+                                                    })
+                                                } else {
+                                                    doNext= true;
+                                                }
+                                                console.log((counter + 1) + '-' + globalCounter + '-' + (targetUsers.length - internalCounter) );
+                                            });
+                                        } else{
+                                            doNext = true;
                                         }
-                                        console.log(counter + '-' + globalCounter );
-                                    });
-                                } else{
-                                    doNext = true;
+                                    }
                                 }
                             }
                         }
-                  
+    
                     }
                     internalLoop();
                     var internalPointer = setInterval(internalLoop,  500);
@@ -220,7 +252,7 @@ const start = (loginUser) => {
             }
 
             loop();
-            var loopPointer = setInterval(loop, 60 * 60 * 1000);
+            var loopPointer = setInterval(loop,  60 * 1000);
 
         })
     })
@@ -296,7 +328,6 @@ const createRelationship = (username) => {
             
             if(user && !user.friendshipStatus.outgoing_request){
                 if(!user.friendshipStatus.is_private){
-                    debugger;
                     console.log('Creating relationship to ' + username );
                     return Client.Relationship.create(currentSession, user.id)
                 } else {
