@@ -5,7 +5,7 @@ var userId;
 var password;
 var maxOperationsPerHour = 50;
 var maxRemoveOperationsPerHour = 60;
-var upPeriodStart = 9;
+var upPeriodStart = 10;
 var upPeriodEnd = 22;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;

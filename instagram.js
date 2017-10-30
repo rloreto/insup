@@ -83,22 +83,10 @@ program
 .parse(process.argv);
 
 
-if (program.args.length === 0 || program.start){
 
-    var username = process.env.USER;
-    var pwd = process.env.PWD;
-    if(username && pwd){
-        start({id:username, password: pwd }).then(function(){
-            process.exit();
-        });
-    } else {
-        startWitLogin();
-    }
-    
-}
-if (program.remove){
-    var username = process.env.USER;
-    var pwd = process.env.PWD;
+if (program.remove && !program.update){
+    var username = process.env.USER_INSTAGRAM;
+    var pwd = process.env.PWD_INSTAGRAM;
     if(username && pwd){
         removeNotFollowers({id:username, password: pwd }).then(function(){
             process.exit();
@@ -108,9 +96,9 @@ if (program.remove){
     }
 }
 
-if (program.update){
-    var username = process.env.USER;
-    var pwd = process.env.PWD;
+if (program.update && !program.remove){
+    var username = process.env.USER_INSTAGRAM;
+    var pwd = process.env.PWD_INSTAGRAM;
     if(username && pwd){
         updateTargetFollowers({id:username, password: pwd }, program.args[0]).then(function(){
             process.exit();
@@ -119,5 +107,19 @@ if (program.update){
         updateTargetFollowersWitLogin();
     }
 }
+
+if ((program.args.length === 0 || program.start) && !program.remove && !program.update){
+    
+        var username = process.env.USER_INSTAGRAM;
+        var pwd = process.env.PWD_INSTAGRAM;
+        if(username && pwd){
+            start({id:username, password: pwd }).then(function(){
+                process.exit();
+            });
+        } else {
+            startWitLogin();
+        }
+        
+    }
 
 
