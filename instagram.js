@@ -86,6 +86,9 @@ if ((program.args.length === 0 || program.start) && !program.remove && !program.
     
     var username = process.env.USER_INSTAGRAM;
     var pwd = process.env.PWD_INSTAGRAM;
+
+    console.log(username);
+    console.log(pwd);
     if(username && pwd){
         start({id:username, password: pwd }).then(function(){
             process.exit();
