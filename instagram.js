@@ -82,6 +82,21 @@ program
 .option('-r, --remove', 'Remove not followers')
 .parse(process.argv);
 
+if ((program.args.length === 0 || program.start) && !program.remove && !program.update){
+    
+    var username = process.env.USER_INSTAGRAM;
+    var pwd = process.env.PWD_INSTAGRAM;
+    if(username && pwd){
+        start({id:username, password: pwd }).then(function(){
+            process.exit();
+        });
+    } else {
+        startWitLogin();
+    }
+        
+    
+}
+
 
 
 if (program.remove && !program.update){
@@ -108,18 +123,5 @@ if (program.update && !program.remove){
     }
 }
 
-if ((program.args.length === 0 || program.start) && !program.remove && !program.update){
-    
-        var username = process.env.USER_INSTAGRAM;
-        var pwd = process.env.PWD_INSTAGRAM;
-        if(username && pwd){
-            start({id:username, password: pwd }).then(function(){
-                process.exit();
-            });
-        } else {
-            startWitLogin();
-        }
-        
-    }
 
 
