@@ -86,9 +86,6 @@ if ((program.args.length === 0 || program.start) && !program.remove && !program.
     
     var username = process.env.USER_INSTAGRAM;
     var pwd = process.env.PWD_INSTAGRAM;
-
-    console.log(process.env);
-    
     if(username && pwd){
         start({id:username, password: pwd }).then(function(){
             process.exit();
@@ -106,7 +103,7 @@ if (program.remove && !program.update){
     var username = process.env.USER_INSTAGRAM;
     var pwd = process.env.PWD_INSTAGRAM;
     if(username && pwd){
-        removeNotFollowers({id:username, password: pwd }).then(function(){
+        removeNotFollowers({id:username, password: pwd }, true).then(function(){
             process.exit();
         });
     } else {

@@ -261,7 +261,7 @@ const start = (loginUser) => {
     return promise;  
 };
 
-const removeNotFollowers =  (loginUser) => {
+const removeNotFollowers =  (loginUser, forze) => {
     currentLoginUser = loginUser;
 
     var promise = new Promise(function(resolve) {
@@ -278,7 +278,7 @@ const removeNotFollowers =  (loginUser) => {
                 var date = new Date();
                 var currentHour = date.getHours();
         
-                if(upPeriodStart <= currentHour && currentHour <= upPeriodEnd) {
+                if((upPeriodStart <= currentHour && currentHour <= upPeriodEnd) && !forze) {
                     clearInterval(loopPointer);
                     start(loginUser);
                 } else {
