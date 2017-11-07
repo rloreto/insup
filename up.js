@@ -3,7 +3,7 @@ var segment= 'quierobesarte.es';
 
 var userId;
 var password;
-var maxOperationsPerHour = 50;
+var maxOperationsPerHour = 60;
 var maxRemoveOperationsPerHour = 60;
 var upPeriodStart = 10;
 var upPeriodEnd = 22;
