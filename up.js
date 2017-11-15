@@ -226,7 +226,6 @@ const start = (loginUser) => {
                                                 //if(!item.isFollower && item.gender === "female"){
                                                 if(!item.isFollower){
                                                     createRelationship(item.username).then((added)=>{
-                                                        console.log(added);
                                                         if(added){
                                                             counter++;
                                                         }
@@ -236,7 +235,7 @@ const start = (loginUser) => {
                                                 } else {
                                                     doNext= true;
                                                 }
-                                                console.log((counter + 1) + '-' + globalCounter + '-' + (targetUsers.length - internalCounter) + '-' + item.isFollower );
+                                                console.log((counter + 1) + '-' + globalCounter + '-' + (targetUsers.length - internalCounter));
                                             });
                                         } else{
                                             doNext = true;
@@ -339,8 +338,7 @@ const createRelationship = (username, onlyPublic) => {
                 }
                 return;
             }
-            console.log('only:' + onlyPublic + ' outgoing_request:' + user.friendshipStatus.outgoing_request);
-
+          
             if(user && !user.friendshipStatus.outgoing_request){
                 
                 if(onlyPublic){
