@@ -226,6 +226,7 @@ const start = (loginUser) => {
                                                 //if(!item.isFollower && item.gender === "female"){
                                                 if(!item.isFollower){
                                                     createRelationship(item.username).then((added)=>{
+                                                        console.log(added);
                                                         if(added){
                                                             counter++;
                                                         }
@@ -235,7 +236,7 @@ const start = (loginUser) => {
                                                 } else {
                                                     doNext= true;
                                                 }
-                                                console.log((counter + 1) + '-' + globalCounter + '-' + (targetUsers.length - internalCounter) );
+                                                console.log((counter + 1) + '-' + globalCounter + '-' + (targetUsers.length - internalCounter) + '-' + item.isFollower );
                                             });
                                         } else{
                                             doNext = true;
@@ -327,9 +328,21 @@ const createRelationship = (username, onlyPublic) => {
             var user;
             if(!response.hasError){
                 user = response.data;
+            } else {
+                if(response.error.name ==='IGAccountNotFoundError'){
+                    User.remove({ username:username }).then((err)=>{
+                        if(err.result.ok === 1){
+                            console.log('removed:' + username);
+                        }
+                        resolve(false);
+                    });
+                }
+                return;
             }
-            
+            console.log('only:' + onlyPublic + ' outgoing_request:' + user.friendshipStatus.outgoing_request);
+
             if(user && !user.friendshipStatus.outgoing_request){
+                
                 if(onlyPublic){
                     if(!user.friendshipStatus.is_private){
                         console.log('Creating relationship to ' + username );
@@ -344,6 +357,7 @@ const createRelationship = (username, onlyPublic) => {
                         resolve(false);
                     }
                 } else {
+                    console.log('Creating relationship to ' + username );
                     return Client.Relationship.create(currentSession, user.id)
                 }
             } else {
