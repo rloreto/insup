@@ -9,6 +9,7 @@ var upPeriodStart = 10;
 var upPeriodEnd = 22;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
+var onlyPublic = false;
 
 require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
@@ -206,7 +207,7 @@ const start = (loginUser) => {
                                                 item.save().then((respose)=>{
                                                     //if(!item.isFollower && item.gender === "female"){
                                                     if(!item.isFollower){
-                                                        createRelationship(item.username).then((added)=>{
+                                                        createRelationship(item.username, onlyPublic).then((added)=>{
                                                             if(added){
                                                                 counter++;
                                                             }
@@ -320,7 +321,7 @@ const removeNotFollowers =  (loginUser, forze) => {
 _.bind(start,this);
 _.bind(removeNotFollowers,this);
 
-const createRelationship = (username) => {
+const createRelationship = (username, onlyPublic) => {
     var promise = new Promise(function(resolve) {
         getUserId(currentLoginUser, username).then((response)=>{
             var user;
@@ -329,19 +330,22 @@ const createRelationship = (username) => {
             }
             
             if(user && !user.friendshipStatus.outgoing_request){
-                if(!user.friendshipStatus.is_private){
-                    console.log('Creating relationship to ' + username );
-                    return Client.Relationship.create(currentSession, user.id)
+                if(onlyPublic){
+                    if(!user.friendshipStatus.is_private){
+                        console.log('Creating relationship to ' + username );
+                        return Client.Relationship.create(currentSession, user.id)
+                    } else {
+                        User.findOne({segment: segment, username: username}).then((user)=>{
+                            if(user){
+                                user.isPrivate = true;
+                            }
+                            user.save();
+                        })
+                        resolve(false);
+                    }
                 } else {
-                    User.findOne({segment: segment, username: username}).then((user)=>{
-                        if(user){
-                            user.isPrivate = true;
-                        }
-                        user.save();
-                    })
-                    resolve(false);
+                    return Client.Relationship.create(currentSession, user.id)
                 }
-                
             } else {
                 if(user && !user.requestNumber){
                     User.findOne({ userId:user.id }).then((item)=>{
