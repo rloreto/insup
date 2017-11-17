@@ -5,8 +5,8 @@ var userId;
 var password;
 var maxOperationsPerHour = 60;
 var maxRemoveOperationsPerHour = 60;
-var upPeriodStart = 10;
-var upPeriodEnd = 22;
+var upPeriodStart = 8;
+var upPeriodEnd = 23;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
 var onlyPublic = false;
@@ -165,7 +165,7 @@ const start = (loginUser) => {
                 var date = new Date();
                 var currentHour = date.getHours();
                 
-                if(!(upPeriodStart < currentHour && currentHour <= upPeriodEnd)) {
+                if(!(upPeriodStart <= currentHour && currentHour <= upPeriodEnd)) {
                     clearInterval(loopPointer);
                     removeNotFollowers(loginUser);
                 } else {
@@ -279,7 +279,7 @@ const removeNotFollowers =  (loginUser, forze) => {
                 var date = new Date();
                 var currentHour = date.getHours();
         
-                if((upPeriodStart < currentHour && currentHour <= upPeriodEnd) && !forze) {
+                if((upPeriodStart <= currentHour && currentHour <= upPeriodEnd) && !forze) {
                     clearInterval(loopPointer);
                     start(loginUser);
                 } else {
