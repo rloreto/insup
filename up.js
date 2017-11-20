@@ -272,8 +272,8 @@ const removeNotFollowers =  (loginUser, forze) => {
             }
             return users;
         }).
-        then((notFollowers)=>{
-            notFollowers = notFollowers.reverse();
+        then((users)=>{
+            users = users.reverse();
             var max = maxRemoveOperationsPerHour;
             var counter = 0;
             var doNext = true;
@@ -293,7 +293,7 @@ const removeNotFollowers =  (loginUser, forze) => {
                             doNext= true;
                         } else {
                             if(doNext) {
-                                var item = notFollowers[globalCounter];
+                                var item = users[globalCounter];
                                 doNext = false;
                                 globalCounter++;
                                 if(item){
