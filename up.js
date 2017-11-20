@@ -273,7 +273,6 @@ const removeNotFollowers =  (loginUser, forze) => {
             return users;
         }).
         then((notFollowers)=>{
-            console.log(notFollowers.length);
             notFollowers = notFollowers.reverse();
             var max = maxRemoveOperationsPerHour;
             var counter = 0;
@@ -297,7 +296,6 @@ const removeNotFollowers =  (loginUser, forze) => {
                                 var item = notFollowers[globalCounter];
                                 doNext = false;
                                 globalCounter++;
-                                console.log(item);
                                 if(item){
                                     destroyRelationship(item.username).then((user)=>{
                                         if(user){
