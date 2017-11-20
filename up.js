@@ -266,9 +266,14 @@ const removeNotFollowers =  (loginUser, forze) => {
 
     var promise = new Promise(function(resolve) {
         getCurrentUserInfo(loginUser).then((currentUserInfo)=>{
-            return  getFollowingNotFollowers( currentUserInfo);
+            var users =  getFollowingNotFollowers( currentUserInfo);
+            if(user.length===0){
+                users = currentUserInfo.followings;
+            }
+            return users;
         }).
         then((notFollowers)=>{
+            console.log(notFollowers.length);
             notFollowers = notFollowers.reverse();
             var max = maxRemoveOperationsPerHour;
             var counter = 0;
@@ -292,6 +297,7 @@ const removeNotFollowers =  (loginUser, forze) => {
                                 var item = notFollowers[globalCounter];
                                 doNext = false;
                                 globalCounter++;
+                                console.log(item);
                                 if(item){
                                     destroyRelationship(item.username).then((user)=>{
                                         if(user){
