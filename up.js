@@ -292,14 +292,15 @@ const removeNotFollowers =  (loginUser, forze) => {
                                 var item = notFollowers[globalCounter];
                                 doNext = false;
                                 globalCounter++;
-                                destroyRelationship(item.username).then((user)=>{
-                                    if(user){
-                                        setUnfollowed(user.username);
-                                    }
-                                    counter++;
-                                    doNext= true;
-                                });
-                                
+                                if(item){
+                                    destroyRelationship(item.username).then((user)=>{
+                                        if(user){
+                                            setUnfollowed(user.username);
+                                        }
+                                        counter++;
+                                        doNext= true;
+                                    });
+                                }
                             }
                         }
                 
