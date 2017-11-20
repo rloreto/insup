@@ -1,15 +1,14 @@
 var segment= 'quierobesarte.es';
 
-
 var userId;
 var password;
 var maxOperationsPerHour = 60;
 var maxRemoveOperationsPerHour = 60;
-var upPeriodStart = 8;
-var upPeriodEnd = 23;
+var upPeriodStart = 10;
+var upPeriodEnd = 22;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
-var onlyPublic = false;
+var onlyPublic = true;
 
 require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
