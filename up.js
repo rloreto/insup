@@ -170,7 +170,7 @@ const start = loginUser => {
         var date = new Date();
         var currentHour = date.getHours();
 
-        if (!(upPeriodStart <= currentHour && currentHour <= upPeriodEnd)) {
+        if (!(upPeriodStart < currentHour && currentHour <= upPeriodEnd)) {
           clearInterval(loopPointer);
           removeNotFollowers(loginUser);
         } else {
@@ -300,7 +300,7 @@ const removeNotFollowers = (loginUser, forze) => {
           var currentHour = date.getHours();
 
           if (
-            upPeriodStart <= currentHour &&
+            upPeriodStart < currentHour &&
             currentHour <= upPeriodEnd &&
             !forze
           ) {
