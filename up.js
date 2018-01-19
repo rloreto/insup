@@ -1,4 +1,4 @@
-var segment = 'quierobesarte.es';
+var segment = 'nachodelriobodas';
 
 var userId;
 var password;
@@ -14,6 +14,8 @@ require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
 var fs = require('fs');
 var process = require('process');
+require('dotenv').load();
+var segment = process.env.USER_INSTAGRAM
 var Client = require('instagram-private-api').V1;
 var device = new Client.Device(segment);
 var storage = new Client.CookieFileStorage(
@@ -65,7 +67,7 @@ const login = (userId, password) => {
     'mongodb://' +
       user_mongo +
       ':' +
-      pwdMongo +
+      pwd_mongo +
       '@ds123695.mlab.com:23695/instagram',
     { useMongoClient: true }
   );
