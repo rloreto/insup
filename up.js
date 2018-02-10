@@ -349,7 +349,8 @@ _.bind(removeNotFollowers, this);
 
 const createRelationship = (username, onlyPublic) => {
   var promise = new Promise(function(resolve) {
-    getUserId(currentLoginUser, username)
+    try{
+      getUserId(currentLoginUser, username)
       .then(response => {
         var user;
         if (!response.hasError) {
@@ -417,6 +418,11 @@ const createRelationship = (username, onlyPublic) => {
           resolve(false);
         }
       });
+    } catch (e) {
+      console.log(e);
+      resolve(true);
+    }
+    
   });
 
   return promise;
