@@ -1,8 +1,11 @@
-{
+module.exports = {
   "apps" : [{
-    "name"        : "worker",
-    "script"      : "node ./instagram.js",
+    "name"        : "InsUp QB",
+    "script"      : "./instagram.js",
     "args"        : "-s 'quierobesarte' 'Por.][12pPor.][12p'"
-    "watch"       : true
+  },{
+    "name"        : "InsUp NachoDelRioBodas",
+    "script"      : "./instagram.js",
+    "args"        : "-r 'nachodelriobodas' 'nacandfeez'"
   }]
 }
