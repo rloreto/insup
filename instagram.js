@@ -101,8 +101,8 @@ if (
 }
 
 if (program.remove && !program.update) {
-  var username = process.env.USER_INSTAGRAM;
-  var pwd = process.env.PWD_INSTAGRAM;
+  var username = process.env.USER_INSTAGRAM || program.args[0];
+  var pwd = process.env.PWD_INSTAGRAM || program.args[1];
   if (username && pwd) {
     removeNotFollowers({ id: username, password: pwd }, true).then(function() {
       process.exit();
@@ -113,8 +113,8 @@ if (program.remove && !program.update) {
 }
 
 if (program.update && !program.remove) {
-  var username = process.env.USER_INSTAGRAM;
-  var pwd = process.env.PWD_INSTAGRAM;
+  var username = process.env.USER_INSTAGRAM || program.args[1];
+  var pwd = process.env.PWD_INSTAGRAM || program.args[2];
   if (username && pwd) {
     updateTargetFollowers(
       { id: username, password: pwd },
