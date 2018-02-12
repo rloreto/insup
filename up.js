@@ -288,7 +288,7 @@ const start = loginUser => {
                         } else {
                           doNext = true;
                         }
-                        console.log('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')';
+                        console.log('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         
                       });
                     } else {
