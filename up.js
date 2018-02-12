@@ -10,6 +10,7 @@ var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
 var onlyPublic = false;
 
+var sleepms = require('sleep-ms');
 require('console-stamp')(console, '[HH:MM:ss.l]');
 var util = require('util');
 var fs = require('fs');
@@ -141,7 +142,7 @@ const getUsers = numLimits => {
       query = query.limit(numLimits);
     }
     query.sort({ order: 1 }).then(users => {
-      console.log('Recieved ' + users.length + 'new users.');
+      console.log('Recieved ' + users.length + ' new users.');
       resolve(users);
     });
   });
@@ -171,13 +172,14 @@ const start = loginUser => {
       function loop() {
         var date = new Date();
         var currentHour = date.getHours();
+        var pause = false;
 
         if (!(upPeriodStart < currentHour && currentHour <= upPeriodEnd)) {
           clearInterval(loopPointer);
           removeNotFollowers(loginUser);
         } else {
           function internalLoop() {
-            if (targetUsers && targetUsers.length > 0) {
+            if (!pause && targetUsers && targetUsers.length > 0) {
               if (internalCounter + 1 > targetUsers.length) {
                 internalCounter = 0;
                 targetUsers = [];
@@ -224,6 +226,18 @@ const start = loginUser => {
                                   counter++;
                                 }
                                 doNext = true;
+                              }).catch((e)=>{
+                                console.log(e)
+                                if (e && e.message === 'Please wait a few minutes before you try again.') {
+                                  console.log("Wait for next loop...");
+                                  pause = true;
+                                  waitFor(5, function() {
+                                    pause = false;
+                                    internalPointer = setInterval(internalLoop, 500);
+                                    doNext = true;
+                                  });
+                                }
+                                doNext = true;
                               });
                             } else {
                               doNext = true;
@@ -245,7 +259,19 @@ const start = loginUser => {
                               counter++;
                             }
                             doNext = true;
-                          });
+                          }).catch((e)=>{
+                            console.log(e)
+                            if (e && e.message === 'Please wait a few minutes before you try again.') {
+                              console.log("Wait for next loop...");
+                              pause = true;
+                              waitFor(5, function() {
+                                pause = false;
+                                internalPointer = setInterval(internalLoop, 500);
+                                doNext = true;
+                              });
+                            }
+                            doNext = true;
+                          })
                         } else {
                           doNext = true;
                         }
@@ -279,6 +305,26 @@ const start = loginUser => {
   return promise;
 };
 
+
+
+const waitFor = (minutes, done) => {
+  var total = minutes * 60 * 1000;
+  var internalCounter = 0; 
+  var internalPointer = setInterval(function(){
+    internalCounter++;
+    var remainingMs = (total - (internalCounter * 1000))/1000
+    if(remainingMs % 60 === 0) {
+      console.log('Remaining time: ' + remainingMs / 60 + ' minutes');
+    }
+    if((internalCounter *  1000) > total){
+      clearInterval(internalPointer);
+      if(done){
+        done();
+      }
+    }
+  }, 1000);
+}
+
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
 
@@ -297,40 +343,54 @@ const removeNotFollowers = (loginUser, forze) => {
         var counter = 0;
         var doNext = true;
         var globalCounter = 0;
+        var pause = false;
         function loop() {
-          var date = new Date();
-          var currentHour = date.getHours();
-
-          if (
-            upPeriodStart < currentHour &&
-            currentHour <= upPeriodEnd &&
-            !forze
-          ) {
-            clearInterval(loopPointer);
-            start(loginUser);
-          } else {
-            function internalLoop() {
-              if (counter >= max) {
-                clearInterval(internalPointer);
-                counter = 0;
-                doNext = true;
-              } else {
-                if (doNext) {
-                  var item = users[globalCounter];
-                  doNext = false;
-                  globalCounter++;
-                  if (item) {
-                    destroyRelationship(item.username).then(user => {
-                      if (user) {
-                        setUnfollowed(user.username);
-                      }
-                      counter++;
-                      doNext = true;
-                    });
+          if(!pause){
+            var date = new Date();
+            var currentHour = date.getHours();
+  
+            if (
+              upPeriodStart < currentHour &&
+              currentHour <= upPeriodEnd &&
+              !forze
+            ) {
+              clearInterval(loopPointer);
+              start(loginUser);
+            } else {
+              function internalLoop() {
+                if (counter >= max) {
+                  clearInterval(internalPointer);
+                  counter = 0;
+                  doNext = true;
+                } else {
+                  if (doNext) {
+                    var item = users[globalCounter];
+                    doNext = false;
+                    globalCounter++;
+                    if (item) {
+                      destroyRelationship(item.username).then(user => {
+                        if (user) {
+                          setUnfollowed(user.username);
+                        }
+                        counter++;
+                        doNext = true;
+                      }).catch((e)=>{
+                        console.log(e)
+                        if (e && e.message === 'Please wait a few minutes before you try again.') {
+                          console.log("Wait for next loop...")
+                          pause = true;
+                          waitFor(5, function() {
+                            pause = false;
+                            internalPointer = setInterval(internalLoop, 500);
+                          });
+                        }
+                      });
+                    }
                   }
                 }
               }
             }
+          
             internalLoop();
             var internalPointer = setInterval(internalLoop, 500);
           }
@@ -348,8 +408,7 @@ _.bind(start, this);
 _.bind(removeNotFollowers, this);
 
 const createRelationship = (username, onlyPublic) => {
-  var promise = new Promise(function(resolve) {
-    try{
+  var promise = new Promise(function(resolve, reject) {
       getUserId(currentLoginUser, username)
       .then(response => {
         var user;
@@ -373,7 +432,7 @@ const createRelationship = (username, onlyPublic) => {
               console.log('Creating relationship to ' + username);
               return Client.Relationship.create(currentSession, user.id);
             } else {
-              User.findOne({ segment: segment, username: username }).then(
+              getUserFromDb(segment, username).then(
                 user => {
                   if (user) {
                     user.isPrivate = true;
@@ -381,7 +440,7 @@ const createRelationship = (username, onlyPublic) => {
                   user.save();
                 }
               );
-              resolve(false);
+              reject();
             }
           } else {
             console.log('Creating relationship to ' + username);
@@ -389,22 +448,23 @@ const createRelationship = (username, onlyPublic) => {
           }
         } else {
           if (user && !user.requestNumber) {
-            User.findOne({ userId: user.id }).then(item => {
+            getUserFromDb(segment, username).then((item)=>{
               if (item) {
                 (item.requestDate = Date.now()), (item.requestNumber = 1);
                 item.save();
               }
-            });
+            })
           }
-          resolve(false);
+          reject();
         }
-      })
-      .then(relationship => {
+      }).catch(e => {
+        reject(e);
+      }).then(relationship => {
         if (relationship) {
           console.log('OK');
-          return User.findOne({ segment: segment, username: username });
+          return getUserFromDb(segment, username);
         } else {
-          resolve(false);
+          reject();
         }
       })
       .then(user => {
@@ -418,10 +478,6 @@ const createRelationship = (username, onlyPublic) => {
           resolve(false);
         }
       });
-    } catch (e) {
-      console.log(e);
-      resolve(true);
-    }
     
   });
 
@@ -429,7 +485,7 @@ const createRelationship = (username, onlyPublic) => {
 };
 
 const destroyRelationship = username => {
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function(resolve, reject) {
     getUserId(currentLoginUser, username)
       .then(response => {
         var user;
@@ -443,10 +499,13 @@ const destroyRelationship = username => {
           resolve();
         }
       })
+      .catch(e => {
+        reject(e);
+      })
       .then(relationship => {
         console.log('[OK]');
         if (relationship) {
-          return User.findOne({ segment: segment, username: username });
+          return getUserFromDb(segment, username);
         } else {
           resolve();
         }
@@ -503,6 +562,29 @@ const getUserId = (loginUser, username) => {
   });
   return promise;
 };
+
+const getUserFromDb = (segment, username) => {
+  var promise = new Promise(function(resolve, reject) {
+    User.find({ segment: segment, username: username }).then(
+      users => {
+        if (users && users.length>0) {
+          for(var i=1; i<users.length; i++) {
+            console.log('Duplicates for username: ' + username);
+            var id = users[i].get('id');
+            User.remove({_id: id}).then((response)=>{
+              if (response.result && !response.result.ok) {
+                reject(response);
+              } 
+              console.log('Removed duplicate item ' +  id);
+            })
+          }
+          resolve(users[0]);
+        }
+      }
+    );
+  });
+  return promise;
+}
 
 const getUserInfoByUserName = (loginUser, username) => {
   return gettUserInfo(loginUser, username);
