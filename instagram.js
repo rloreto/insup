@@ -22,10 +22,12 @@ var addTargetUserWithLogin = function(name) {
   });
 };
 
-var updateTargetFollowersWitLogin = function(username) {
+var updateTargetFollowersWitLogin = function(username, force) {
   promntLogin(function(user, password) {
     login(user, password);
-    updateTargetFollowers(username).then(function() {
+    updateTargetFollowers({ id: username, password: pwd },
+      username,
+      force).then(function() {
       console.log('Updated user ' + username + '.');
       process.exit();
     });
@@ -115,14 +117,21 @@ if (program.remove && !program.update) {
 if (program.update && !program.remove) {
   var username = process.env.USER_INSTAGRAM || program.args[1];
   var pwd = process.env.PWD_INSTAGRAM || program.args[2];
+  var force = false;
+    program.rawArgs.forEach((item)=>{
+    if(item === '--force') {
+      force = true;
+    }
+  })
   if (username && pwd) {
     updateTargetFollowers(
       { id: username, password: pwd },
-      program.args[0]
+      program.args[0],
+      force
     ).then(function() {
       process.exit();
     });
   } else {
-    updateTargetFollowersWitLogin();
+    updateTargetFollowersWitLogin(program.args[0],force);
   }
 }

@@ -9,6 +9,9 @@ var upPeriodEnd = 22;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
 var onlyPublic = false;
+var maxConsecutiveCreateOperations = 5;
+var maxConsecutiveRemoveOperations = 5;
+var waitBetweenOperationMinutes = 3
 
 var sleepms = require('sleep-ms');
 require('console-stamp')(console, '[HH:MM:ss.l]');
@@ -77,7 +80,7 @@ const login = (userId, password) => {
   db.on('error', console.error.bind(console, 'connection error:'));
 };
 
-const updateTargetFollowers = (loginUser, targetUsername) => {
+const updateTargetFollowers = (loginUser, targetUsername, force) => {
   currentLoginUser = loginUser;
   var currentSession;
   var followers;
@@ -98,7 +101,7 @@ const updateTargetFollowers = (loginUser, targetUsername) => {
         user = response.data;
       }
       var cacheFile = './tmp/' + targetUsername + '_followers.json';
-      if (!fs.existsSync(cacheFile)) {
+      if (!fs.existsSync(cacheFile) || force) {
         Client.Session.create(
           device,
           storage,
@@ -114,7 +117,7 @@ const updateTargetFollowers = (loginUser, targetUsername) => {
             currentSession: session
           };
 
-          getFollowers(targetUser, followerCount, true).then(function() {
+          getFollowers(targetUser, followerCount, true, force).then(function() {
             resolve();
           });
         });
@@ -224,16 +227,21 @@ const start = loginUser => {
                               ).then(added => {
                                 if (added) {
                                   counter++;
+                                  if(counter % maxConsecutiveCreateOperations === 0) {
+                                    pause = true;
+                                    waitFor(waitBetweenOperationMinutes, function() {
+                                      pause = false;
+                                      doNext = true;
+                                    });
+                                  }
                                 }
                                 doNext = true;
                               }).catch((e)=>{
                                 console.log(e)
                                 if (e && e.message === 'Please wait a few minutes before you try again.') {
-                                  console.log("Wait for next loop...");
                                   pause = true;
-                                  waitFor(5, function() {
+                                  waitFor(waitBetweenOperationMinutes, function() {
                                     pause = false;
-                                    internalPointer = setInterval(internalLoop, 500);
                                     doNext = true;
                                   });
                                 }
@@ -257,16 +265,21 @@ const start = loginUser => {
                           createRelationship(item.username).then(added => {
                             if (added) {
                               counter++;
+                              if(counter % maxConsecutiveCreateOperations === 0) {
+                                pause = true;
+                                waitFor(waitBetweenOperationMinutes, function() {
+                                  pause = false;
+                                  doNext = true;
+                                });
+                              }
                             }
                             doNext = true;
                           }).catch((e)=>{
                             console.log(e)
                             if (e && e.message === 'Please wait a few minutes before you try again.') {
-                              console.log("Wait for next loop...");
                               pause = true;
-                              waitFor(5, function() {
+                              waitFor(waitBetweenOperationMinutes, function() {
                                 pause = false;
-                                internalPointer = setInterval(internalLoop, 500);
                                 doNext = true;
                               });
                             }
@@ -310,6 +323,7 @@ const start = loginUser => {
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
+  console.log("Waiting " + minutes + "for next loop...");
   var internalPointer = setInterval(function(){
     internalCounter++;
     var remainingMs = (total - (internalCounter * 1000))/1000
@@ -373,13 +387,19 @@ const removeNotFollowers = (loginUser, forze) => {
                           setUnfollowed(user.username);
                         }
                         counter++;
+                        if(counter % maxConsecutiveRemoveOperations === 0) {
+                          pause = true;
+                          waitFor(waitBetweenOperationMinutes, function() {
+                            pause = false;
+                            internalPointer = setInterval(internalLoop, 500);
+                          });
+                        }
                         doNext = true;
                       }).catch((e)=>{
                         console.log(e)
                         if (e && e.message === 'Please wait a few minutes before you try again.') {
-                          console.log("Wait for next loop...")
                           pause = true;
-                          waitFor(5, function() {
+                          waitFor(waitBetweenOperationMinutes, function() {
                             pause = false;
                             internalPointer = setInterval(internalLoop, 500);
                           });
@@ -390,7 +410,7 @@ const removeNotFollowers = (loginUser, forze) => {
                 }
               }
             }
-          
+          º
             internalLoop();
             var internalPointer = setInterval(internalLoop, 500);
           }
@@ -628,7 +648,7 @@ const gettUserInfo = (loginUser, targerUsername) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers) => {
+const getFollowers = (user, followerCount, saveUsers, force) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
@@ -640,7 +660,7 @@ const getFollowers = (user, followerCount, saveUsers) => {
   var cacheFile = './tmp/' + user.name + '_followers.json';
 
   var promise = new Promise(function(resolve) {
-    if (!fs.existsSync(cacheFile)) {
+    if (!fs.existsSync(cacheFile) || force) {
       var timeoutObj = setInterval(function() {
         if (counter > followerCount) {
           clearInterval(timeoutObj);
@@ -720,13 +740,12 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
         pictureUrl = value.picture;
       }
       //console.log(index);
-      User.findOne({ segment: segment, username: username }, function(
+      User.find({ segment: segment, username: username }, function(
         err,
-        user
+        users
       ) {
         if (!err) {
-          if (!user) {
-            debugger;
+          if (!users || (users && users.length === 0)) {
             user = new User({
               providerId: providerId,
               segment: segment,
@@ -738,6 +757,7 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
               requestNumber: 0
             });
           } else {
+            user = users[0]
             user.order = (index + 1) * page;
           }
 
