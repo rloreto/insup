@@ -410,7 +410,7 @@ const removeNotFollowers = (loginUser, forze) => {
                 }
               }
             }
-          º
+          
             internalLoop();
             var internalPointer = setInterval(internalLoop, 500);
           }
