@@ -5,7 +5,7 @@ var password;
 var maxOperationsPerHour = 60;
 var maxRemoveOperationsPerHour = 60;
 var upPeriodStart = 10;
-var upPeriodEnd = 22;
+var upPeriodEnd = 23;
 var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
 var onlyPublic = false;
@@ -19,12 +19,7 @@ var util = require('util');
 var fs = require('fs');
 var process = require('process');
 require('dotenv').load();
-var segment = process.env.USER_INSTAGRAM
-var Client = require('instagram-private-api').V1;
-var device = new Client.Device(segment);
-var storage = new Client.CookieFileStorage(
-  __dirname + '/cookies/' + segment + '.json'
-);
+
 var mongoose = require('mongoose');
 var _ = require('lodash');
 var Promise = require('bluebird');
@@ -58,6 +53,7 @@ var User = mongoose.model('User', {
 var progressCounter = 0;
 
 const login = (userId, password) => {
+  setDevice(userId);
   this.userId = userId;
   this.password = password;
   this.currentLoginUser = {
@@ -80,8 +76,20 @@ const login = (userId, password) => {
   db.on('error', console.error.bind(console, 'connection error:'));
 };
 
+var segment, device, storage;
+var Client = require('instagram-private-api').V1;
+
+const setDevice = (username) => {
+  segment = username;
+  device = new Client.Device(segment);
+  storage = new Client.CookieFileStorage(
+    __dirname + '/cookies/' + segment + '.json'
+  );
+}
+
 const updateTargetFollowers = (loginUser, targetUsername, force) => {
   currentLoginUser = loginUser;
+  setDevice(currentLoginUser.id);
   var currentSession;
   var followers;
   var promise = new Promise(function(resolve) {
@@ -133,28 +141,9 @@ const updateTargetFollowers = (loginUser, targetUsername, force) => {
   return promise;
 };
 
-const getUsers = numLimits => {
-  var promise = new Promise(function(resolve) {
-    var query = User.find({
-      requestNumber: 0,
-      unfollowed: { $ne: true },
-      isFollower: { $ne: true },
-      isPrivate: { $ne: true }
-    });
-    if (numLimits && Number.isInteger(numLimits)) {
-      query = query.limit(numLimits);
-    }
-    query.sort({ order: 1 }).then(users => {
-      console.log('Recieved ' + users.length + ' new users.');
-      resolve(users);
-    });
-  });
-
-  return promise;
-};
-
 const start = loginUser => {
   currentLoginUser = loginUser;
+  setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
     getCurrentUserInfo(loginUser).then(currentUserInfo => {
       var data = {
@@ -312,30 +301,9 @@ const start = loginUser => {
   return promise;
 };
 
-
-
-const waitFor = (minutes, done) => {
-  var total = minutes * 60 * 1000;
-  var internalCounter = 0; 
-  console.log("Waiting " + minutes + " for next loop...");
-  var internalPointer = setInterval(function(){
-    internalCounter++;
-    var remainingMs = (total - (internalCounter * 1000))/1000
-    if(remainingMs % 60 === 0) {
-      console.log('Remaining time: ' + remainingMs / 60 + ' minutes');
-    }
-    if((internalCounter *  1000) > total){
-      clearInterval(internalPointer);
-      if(done){
-        done();
-      }
-    }
-  }, 1000);
-}
-
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
-
+  setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
     getCurrentUserInfo(loginUser)
       .then(currentUserInfo => {
@@ -353,7 +321,7 @@ const removeNotFollowers = (loginUser, forze) => {
         var globalCounter = 0;
         var pause = false;
         function loop() {
-         
+         debugger;
           var date = new Date();
           var currentHour = date.getHours();
 
@@ -420,6 +388,44 @@ const removeNotFollowers = (loginUser, forze) => {
   return promise;
 };
 
+const waitFor = (minutes, done) => {
+  var total = minutes * 60 * 1000;
+  var internalCounter = 0; 
+  console.log("Waiting " + minutes + " for next loop...");
+  var internalPointer = setInterval(function(){
+    internalCounter++;
+    var remainingMs = (total - (internalCounter * 1000))/1000
+    if(remainingMs % 60 === 0) {
+      console.log('Remaining time: ' + remainingMs / 60 + ' minutes');
+    }
+    if((internalCounter *  1000) > total){
+      clearInterval(internalPointer);
+      if(done){
+        done();
+      }
+    }
+  }, 1000);
+}
+
+const getUsers = numLimits => {
+  var promise = new Promise(function(resolve) {
+    var query = User.find({
+      requestNumber: 0,
+      unfollowed: { $ne: true },
+      isFollower: { $ne: true },
+      isPrivate: { $ne: true }
+    });
+    if (numLimits && Number.isInteger(numLimits)) {
+      query = query.limit(numLimits);
+    }
+    query.sort({ order: 1 }).then(users => {
+      console.log('Recieved ' + users.length + ' new users.');
+      resolve(users);
+    });
+  });
+
+  return promise;
+};
 _.bind(start, this);
 _.bind(removeNotFollowers, this);
 
@@ -595,6 +601,8 @@ const getUserFromDb = (segment, username) => {
             })
           }
           resolve(users[0]);
+        } else {
+          resolve();
         }
       }
     );

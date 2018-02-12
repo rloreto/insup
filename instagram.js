@@ -93,6 +93,7 @@ if (
 ) {
   var username = process.env.USER_INSTAGRAM || program.args[0];
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
+  process.env.USER_INSTAGRAM = username;
   if (username && pwd) {
     start({ id: username, password: pwd }).then(function() {
       process.exit();
@@ -105,6 +106,7 @@ if (
 if (program.remove && !program.update) {
   var username = process.env.USER_INSTAGRAM || program.args[0];
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
+
   if (username && pwd) {
     removeNotFollowers({ id: username, password: pwd }, true).then(function() {
       process.exit();
@@ -117,6 +119,7 @@ if (program.remove && !program.update) {
 if (program.update && !program.remove) {
   var username = process.env.USER_INSTAGRAM || program.args[1];
   var pwd = process.env.PWD_INSTAGRAM || program.args[2];
+  process.env.USER_INSTAGRAM = username;
   var force = false;
     program.rawArgs.forEach((item)=>{
     if(item === '--force') {
