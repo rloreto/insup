@@ -288,14 +288,8 @@ const start = loginUser => {
                         } else {
                           doNext = true;
                         }
-                        console.log(
-                          counter +
-                            1 +
-                            '-' +
-                            globalCounter +
-                            '-' +
-                            (targetUsers.length - internalCounter)
-                        );
+                        console.log('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')';
+                        
                       });
                     } else {
                       doNext = true;
@@ -396,6 +390,7 @@ const removeNotFollowers = (loginUser, forze) => {
                           });
                         }
                         doNext = true;
+                        console.log('Destroying relationship ' + counter + ' of ' + max);
                       }).catch((e)=>{
                         console.log(e)
                         if (e && e.message === 'Please wait a few minutes before you try again.') {
