@@ -323,7 +323,7 @@ const start = loginUser => {
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
-  console.log("Waiting " + minutes + "for next loop...");
+  console.log("Waiting " + minutes + " for next loop...");
   var internalPointer = setInterval(function(){
     internalCounter++;
     var remainingMs = (total - (internalCounter * 1000))/1000
