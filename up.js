@@ -359,19 +359,20 @@ const removeNotFollowers = (loginUser, forze) => {
         var globalCounter = 0;
         var pause = false;
         function loop() {
-          if(!pause){
-            var date = new Date();
-            var currentHour = date.getHours();
-  
-            if (
-              upPeriodStart < currentHour &&
-              currentHour <= upPeriodEnd &&
-              !forze
-            ) {
-              clearInterval(loopPointer);
-              start(loginUser);
-            } else {
-              function internalLoop() {
+         
+          var date = new Date();
+          var currentHour = date.getHours();
+
+          if (
+            upPeriodStart < currentHour &&
+            currentHour <= upPeriodEnd &&
+            !forze
+          ) {
+            clearInterval(loopPointer);
+            start(loginUser);
+          } else {
+            function internalLoop() {
+              if(!pause){
                 if (counter >= max) {
                   clearInterval(internalPointer);
                   counter = 0;
@@ -410,7 +411,7 @@ const removeNotFollowers = (loginUser, forze) => {
                 }
               }
             }
-          
+            
             internalLoop();
             var internalPointer = setInterval(internalLoop, 500);
           }
