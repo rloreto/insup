@@ -30,6 +30,23 @@ if (!fs.existsSync('./tmp/')) {
   fs.mkdirSync('./tmp/');
 }
 
+var user_mongo = process.env.USER_MONGO;
+var pwd_mongo = process.env.PWD_MONGO;
+
+
+mongoose.connect(
+  'mongodb://' +
+    user_mongo +
+    ':' +
+    pwd_mongo +
+    '@ds123695.mlab.com:23695/instagram',
+  { useMongoClient: true }
+);
+mongoose.Promise = Promise;
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+
+
 var User = mongoose.model('User', {
   segment: String,
   userId: String,
@@ -60,20 +77,6 @@ const login = (userId, password) => {
     id: userId,
     password: password
   };
-  var user_mongo = process.env.USER_MONGO;
-  var pwd_mongo = process.env.PWD_MONGO;
-  this.segment = userId;
-  mongoose.connect(
-    'mongodb://' +
-      user_mongo +
-      ':' +
-      pwd_mongo +
-      '@ds123695.mlab.com:23695/instagram',
-    { useMongoClient: true }
-  );
-  mongoose.Promise = Promise;
-  var db = mongoose.connection;
-  db.on('error', console.error.bind(console, 'connection error:'));
 };
 
 var segment, device, storage;
@@ -321,7 +324,6 @@ const removeNotFollowers = (loginUser, forze) => {
         var globalCounter = 0;
         var pause = false;
         function loop() {
-         debugger;
           var date = new Date();
           var currentHour = date.getHours();
 
