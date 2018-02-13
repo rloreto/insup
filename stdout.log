@@ -1,8 +1,81 @@
-[13:57:43.095] [LOG]   Getting quierobesarte.es followings
-[13:57:43.689] [LOG]   [OK]
-[13:57:43.690] [LOG]   Getting quierobesarte.es followers
-[13:57:43.708] [LOG]   [OK]
-[13:57:44.857] [LOG]   Recieved 1000 new users.
-[13:58:07.654] [LOG]   Creating relationship 1 (1) of 60 (999)
-[13:58:12.384] [LOG]   Creating relationship to floristeriapaloma
-[13:58:13.533] [LOG]   OK
+[15:12:58.088] [LOG]   Getting videosdebodamadrid followings
+[15:12:58.581] [LOG]   [OK]
+[15:12:58.582] [LOG]   Getting videosdebodamadrid followers
+[15:12:59.587] [LOG]   NaN% 
+[15:13:00.593] [LOG]   100% 
+[15:13:00.594] [LOG]   [OK]
+[15:13:02.754] [LOG]   Recieved 1000 new users.
+[15:13:09.504] [LOG]   Creating relationship to safatrabelsi26
+[15:13:11.664] [LOG]   [OK]
+[15:13:11.664] [LOG]   Created relationship: safatrabelsi26 1 (1) of 60 (999)
+[15:13:12.901] [LOG]   Creating relationship to freelander_video
+[15:13:14.934] [LOG]   [OK]
+[15:13:14.934] [LOG]   Created relationship: freelander_video 2 (2) of 60 (998)
+[15:13:16.675] [LOG]   Creating relationship to aadesignsmenorca
+[15:13:18.600] [LOG]   [OK]
+[15:13:18.600] [LOG]   Created relationship: aadesignsmenorca 3 (3) of 60 (997)
+[15:13:19.826] [LOG]   Creating relationship to brunobragancaphotography
+[15:13:21.668] [LOG]   [OK]
+[15:13:21.669] [LOG]   Created relationship: brunobragancaphotography 4 (4) of 60 (996)
+[15:13:22.580] [LOG]   Creating relationship to bridesmaid.ofthetruthamore
+[15:13:23.827] [LOG]   [OK]
+[15:13:23.828] [LOG]   Created relationship: bridesmaid.ofthetruthamore 5 (5) of 60 (995)
+[15:13:23.829] [LOG]   Waiting 3 for next loop...
+[15:14:23.935] [LOG]   Remaining time: 2 minutes
+[15:15:24.035] [LOG]   Remaining time: 1 minutes
+[15:16:24.190] [LOG]   Remaining time: 0 minutes
+[15:16:26.902] [LOG]   Creating relationship to pili_gutierrez_photography
+[15:16:28.618] [LOG]   [OK]
+[15:16:28.619] [LOG]   Created relationship: pili_gutierrez_photography 6 (6) of 60 (994)
+[15:16:30.755] [LOG]   Creating relationship to teresacordon
+[15:16:32.052] [LOG]   [OK]
+[15:16:32.052] [LOG]   Created relationship: teresacordon 7 (7) of 60 (993)
+[15:16:34.013] [LOG]   Creating relationship to thedreamsevents
+[15:16:35.998] [LOG]   [OK]
+[15:16:35.999] [LOG]   Created relationship: thedreamsevents 8 (8) of 60 (992)
+[15:16:36.614] [LOG]   Creating relationship to mamaveigagomez
+[15:16:38.252] [LOG]   [OK]
+[15:16:38.252] [LOG]   Created relationship: mamaveigagomez 9 (9) of 60 (991)
+[15:16:39.683] [LOG]   Creating relationship to isabelecheverri_
+[15:16:40.783] [LOG]   [OK]
+[15:16:40.784] [LOG]   Created relationship: isabelecheverri_ 10 (10) of 60 (990)
+[15:16:40.784] [LOG]   Waiting 3 for next loop...
+[15:17:40.946] [LOG]   Remaining time: 2 minutes
+[15:18:41.064] [LOG]   Remaining time: 1 minutes
+[15:19:41.165] [LOG]   Remaining time: 0 minutes
+[15:19:43.719] [LOG]   Creating relationship to olyenkaalvarez
+[15:19:45.300] [LOG]   [OK]
+[15:19:45.300] [LOG]   Created relationship: olyenkaalvarez 11 (11) of 60 (989)
+[15:19:46.069] [LOG]   Creating relationship to findingmarina
+[15:19:47.242] [LOG]   [OK]
+[15:19:47.242] [LOG]   Created relationship: findingmarina 12 (12) of 60 (988)
+[15:19:47.977] [LOG]   Creating relationship to la_gata_azul
+[15:19:49.239] [LOG]   [OK]
+[15:19:49.239] [LOG]   Created relationship: la_gata_azul 13 (13) of 60 (987)
+[15:19:50.293] [LOG]   Creating relationship to gabby.minou
+[15:19:51.883] [LOG]   [OK]
+[15:19:51.884] [LOG]   Created relationship: gabby.minou 14 (14) of 60 (986)
+[15:19:52.807] [LOG]   Creating relationship to produktovyimagazin1
+[15:19:54.061] [LOG]   [OK]
+[15:19:54.062] [LOG]   Created relationship: produktovyimagazin1 15 (15) of 60 (985)
+[15:19:54.062] [LOG]   Waiting 3 for next loop...
+[15:20:54.183] [LOG]   Remaining time: 2 minutes
+[15:21:54.345] [LOG]   Remaining time: 1 minutes
+[15:22:54.491] [LOG]   Remaining time: 0 minutes
+[15:22:56.220] [LOG]   Creating relationship to kucingcantikdunia
+[15:22:57.248] [LOG]   [OK]
+[15:22:57.249] [LOG]   Created relationship: kucingcantikdunia 16 (16) of 60 (984)
+[15:22:58.194] [LOG]   Creating relationship to razziel91
+[15:22:59.529] [LOG]   [OK]
+[15:22:59.530] [LOG]   Created relationship: razziel91 17 (17) of 60 (983)
+[15:23:01.125] [LOG]   Creating relationship to albiaquintanilla
+[15:23:02.817] [LOG]   [OK]
+[15:23:02.818] [LOG]   Created relationship: albiaquintanilla 18 (18) of 60 (982)
+[15:23:03.998] [LOG]   Creating relationship to lily.theking
+[15:23:05.383] [LOG]   [OK]
+[15:23:05.384] [LOG]   Created relationship: lily.theking 19 (19) of 60 (981)
+[15:23:06.521] [LOG]   Creating relationship to bodega_elpujio
+[15:23:08.044] [LOG]   [OK]
+[15:23:08.045] [LOG]   Created relationship: bodega_elpujio 20 (20) of 60 (980)
+[15:23:08.045] [LOG]   Waiting 3 for next loop...
+[15:24:08.162] [LOG]   Remaining time: 2 minutes

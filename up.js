@@ -295,7 +295,7 @@ const start = loginUser => {
                         if (!follower) {
                           createRelationship(item.username).then(added => {
                             if (added) {
-                              trace('Created relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                              trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               counter++;
                               if(counter % maxConsecutiveCreateOperations === 0) {
                                 pause = true;
@@ -305,14 +305,14 @@ const start = loginUser => {
                                 });
                               }
                             } else {
-                              trace('Ignore relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                              trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             }
                             doNext = true;
                           }).catch((e)=>{     
                             if (e) {
                               trace(e)
-                              trace('Error creating relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                              if(e.message === 'Please wait a few minutes before you try again.') {
+                              trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                              if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                                 pause = true;
                                 waitFor(waitBetweenOperationMinutes, function() {
                                   pause = false;
@@ -324,7 +324,7 @@ const start = loginUser => {
                           })
                         } else {
                           doNext = true;
-                          trace('Ignore follower relationship: ' + item.username, + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                          trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         }
                         
                         
@@ -463,7 +463,6 @@ const setInfo = (user, currentUsername, property, value) => {
   }
 }
 const getInfo = (user, currentUsername, property) => {
-  debugger;
   if(user.info && user.info.length>0){
     var found = user.info.find(function(item) {
       return item.un === currentUsername;

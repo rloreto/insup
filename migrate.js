@@ -46,6 +46,7 @@ var UserBase = mongoose.model('UserBase', {
   userId: String,
   username: String,
   attempts: [],
+  unfollowBy: [],
   info: []
 });
 
@@ -94,15 +95,24 @@ const migrate = (obj) => {
                 for(var i=0; i< users.length; i++) {
                   var originalUser = users[i];
 
-                  UserBase.findOne({ username: originalUser.username, segment: 'weddings' }, function(err,user) {
+                  UserBase.findOne({ username: originalUser.username, segment: 'weddings', unfollowBy:{"$ne": null} }, function(err,user) {
                     if (!err) {
                       count++;
                       if (user) {
                       
 
                         user.set('unfollowBy', undefined);
-                        user.set('attempts', []);
-
+                        user.save(function(err) {
+                          intenalCount++;
+                          console.log(count + ' ' + total);
+                          if(intenalCount>=pagTotal){
+                            pause = false;
+                          }
+                          if (err) {
+                            console.log(err);
+                          }
+                        });
+                        /*
                         if(originalUser.requestNumber>0) {
                           if(user.attempts && user.attempts.length>0){
                             var found = user.attempts.find(function(item) {
@@ -180,7 +190,7 @@ const migrate = (obj) => {
                           if (err) {
                             console.log(err);
                           }
-                        });
+                        });*/
                       } else {
                         intenalCount++;
                         console.log(count + ' ' + total);
