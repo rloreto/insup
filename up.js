@@ -2,16 +2,18 @@ var segment = 'nachodelriobodas';
 
 var userId;
 var password;
-var maxOperationsPerHour = 60;
-var maxRemoveOperationsPerHour = 60;
-var upPeriodStart = 10;
-var upPeriodEnd = 23;
-var maxGetUsers = 1000;
 var loopTime = 60 * 60 * 1000;
-var onlyPublic = false;
-var maxConsecutiveCreateOperations = 5;
-var maxConsecutiveRemoveOperations = 5;
-var waitBetweenOperationMinutes = 3
+
+var maxOperationsPerHour;
+var maxRemoveOperationsPerHour;
+var upPeriodStart;
+var upPeriodEnd;
+var maxGetUsers;
+var onlyPublic;
+var maxConsecutiveCreateOperations;
+var maxConsecutiveRemoveOperations;
+var waitBetweenOperationMinutes;
+var segments;
 
 const console_stamp = require('console-stamp')
 const fs = require('fs');
@@ -56,8 +58,6 @@ mongoose.Promise = Promise;
 var db = mongoose.connection;
 db.on('error', logger.error.bind(logger, 'connection error:'));
 
-
-
 var UserBase = mongoose.model('UserBase', {
   segment: String,
   userId: String,
@@ -66,6 +66,19 @@ var UserBase = mongoose.model('UserBase', {
   unfollowBy: []
 });
 
+var User = mongoose.model('User', {
+  username: String,
+  maxOperationsPerHour: Number,
+  maxRemoveOperationsPerHour: Number,
+  attemupPeriodStartpts: Number,
+  upPeriodStart: Number,
+  maxGetUsers: Number,
+  onlyPublic: Boolean,
+  maxConsecutiveCreateOperations: Number,
+  maxConsecutiveRemoveOperations: Number,
+  waitBetweenOperationMinutes: Number,
+  segments: []
+});
 
 var progressCounter = 0;
 
@@ -92,15 +105,58 @@ const trace = (str, type) => {
 
 }
 
+const loadUserConfig = (username) => {
+  var promise = new Promise(function(resolve, reject) {
+    User.findOne({ username: username }).then((user) => {
+      if (user) {
+        resolve({
+          maxOperationsPerHour: user.maxOperationsPerHour,
+          maxRemoveOperationsPerHour: user.maxRemoveOperationsPerHour,
+          upPeriodStart: user.upPeriodStart,
+          upPeriodEnd: user.upPeriodEnd,
+          maxGetUsers: user.maxGetUsers,
+          onlyPublic: user.onlyPublic,
+          maxConsecutiveCreateOperations: user.maxConsecutiveCreateOperations,
+          maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
+          waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
+          segments: user.segments
+        });
+      } else {
+        resolve({})
+      }
+    })
+  });
+
+  return promise;
+}
 
 const login = (userId, password) => {
-  setDevice(userId);
-  this.userId = userId;
-  this.password = password;
-  this.currentLoginUser = {
-    id: userId,
-    password: password
-  };
+  debugger;
+  var promise = new Promise(function(resolve, reject) {
+    loadUserConfig(userId).then((config)=>{
+      console.log(config);
+      maxOperationsPerHour = config.maxOperationsPerHour || 60;
+      maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour || 60;
+      upPeriodStart = config.upPeriodStart || 10;
+      upPeriodEnd = config.upPeriodEnd || 22;
+      maxGetUsers = config.maxGetUsers || 1000;
+      onlyPublic = config.onlyPublic || false;
+      maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations || 5;
+      maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations || 5;
+      waitBetweenOperationMinutes = config.waitBetweenOperationMinutes || 3
+      segments = config.segments || ["weddings"]
+      setDevice(userId);
+      this.userId = userId;
+      this.password = password;
+      this.currentLoginUser = {
+        id: userId,
+        password: password
+      };
+      resolve();
+    })
+  });
+  return promise;
+
 };
 
 var segment, device, storage;
@@ -196,6 +252,7 @@ const start = loginUser => {
       function loop() {
         var date = new Date();
         var currentHour = date.getHours();
+  
         var pause = false;
 
         if (!(upPeriodStart < currentHour && currentHour <= upPeriodEnd)) {
@@ -350,8 +407,6 @@ const start = loginUser => {
   return promise;
 };
 
-
-
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
@@ -462,6 +517,7 @@ const setInfo = (user, currentUsername, property, value) => {
     user.info.push(obj)
   }
 }
+
 const getInfo = (user, currentUsername, property) => {
   if(user.info && user.info.length>0){
     var found = user.info.find(function(item) {
@@ -472,6 +528,7 @@ const getInfo = (user, currentUsername, property) => {
     }
   } 
 }
+
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
@@ -511,6 +568,7 @@ const getUsers = numLimits => {
 
   return promise;
 };
+
 _.bind(start, this);
 _.bind(removeNotFollowers, this);
 
@@ -594,8 +652,6 @@ const createRelationship = (username, onlyPublic) => {
 
   return promise;
 };
-
-
 
 const destroyRelationship = username => {
   var promise = new Promise(function(resolve, reject) {
@@ -728,7 +784,20 @@ const getUserId = (loginUser, username) => {
 
 const getUserFromDb = (username) => {
   var promise = new Promise(function(resolve, reject) {
-    UserBase.find({ segment: 'weddings', username: username }).then(
+
+    var segmentFilter = {}
+    if(segments && segments.length>0){
+      segmentFilter["$or"] = [];
+      _.forEach(segments, (segment) => {
+        segmentFilter["$or"].push({
+          segment: segment
+        })
+      });
+    }
+    debugger;
+    const filter = _.assign(segmentFilter, { username: username });
+    console.log(filter);
+    UserBase.find(filter).then(
       users => {
         if (users && users.length>0) {
           for(var i=1; i<users.length; i++) {

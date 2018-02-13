@@ -75,11 +75,12 @@ if (
   var username = process.env.USER_INSTAGRAM || program.args[0];
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
   if (username && pwd) {
-    login(username, pwd);
-    start({ id: username, password: pwd }).then(function() {
-      process.exit();
-    }).catch((e)=>{
-      logger.error(e);
+    login(username, pwd).then(()=>{
+      start({ id: username, password: pwd }).then(function() {
+        process.exit();
+      }).catch((e)=>{
+        logger.error(e);
+      });
     });
   } else {
     startWitLogin();
@@ -91,12 +92,14 @@ if (program.remove && !program.update) {
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
 
   if (username && pwd) {
-    login(username, pwd);
-    removeNotFollowers({ id: username, password: pwd }, true).then(function() {
-      process.exit();
-    }).catch((e)=>{
-      logger.error(e);
+    login(username, pwd).then(()=>{
+      removeNotFollowers({ id: username, password: pwd }, false).then(function() {
+        process.exit();
+      }).catch((e)=>{
+        logger.error(e);
+      });
     });
+    
   } else {
     removeWitLogin();
   }
@@ -122,15 +125,16 @@ if (program.update && !program.remove) {
     }
   })
   if (username && pwd) {
-    login(username, pwd);
-    updateTargetFollowers(
-      { id: username, password: pwd, targetUserName, force, segment  },
-      program.args[0],
-      force
-    ).then(function() {
-      process.exit();
-    }).catch((e)=>{
-      logger.error(e);
+    login(username, pwd).then(()=>{
+      updateTargetFollowers(
+        { id: username, password: pwd, targetUserName, force, segment  },
+        program.args[0],
+        force
+      ).then(function() {
+        process.exit();
+      }).catch((e)=>{
+        logger.error(e);
+      });
     });
   } else {
     updateTargetFollowersWitLogin(program.args[0],force);

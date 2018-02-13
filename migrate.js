@@ -50,9 +50,6 @@ var UserBase = mongoose.model('UserBase', {
   info: []
 });
 
-console.log('ssss');
-
-
 
 
 /*debugger;
@@ -74,21 +71,47 @@ UserBase.find({ segment: 'quierobesarte.es'}, function(err,items) {
 var progressCounter = 0;
 
 const migrate = (obj) => {
-  var total = User.count({ segment: 'quierobesarte.es', requestNumber: {$gt:0} }).exec().then((total)=>{
+    //var total = User.count({ segment: 'quierobesarte.es', requestNumber: {$gt:0} }).exec().then((total)=>{
+    UserBase.count({ unfollowBy:{"$ne": null }}).exec().then((total)=>{
     var pause = false;
     var count = 0;
     var intenalCount = 0;
     var pagTotal = 50;
     var pageCount =0;
+    console.log(total);
+
+
 
     function loop() {
       if(!pause){
-        if(intenalCount>= total){
+        if(count>= total){
           clearInterval(loopPointer)
         } else {
           pause = true;
           intenalCount = 0;
           pageCount++;
+
+          UserBase.find({ unfollowBy:{"$ne": null} }).then( function(users) {
+            if (users && users.length>0) {
+              for(var i=0; i< users.length; i++) {
+                var user = users[i];
+                user.set('unfollowBy', undefined);
+                user.save(function(err) {
+                  count++;
+                  intenalCount++;
+                  console.log(count + ' ' + total);
+                  if(intenalCount>=pagTotal){
+                    pause = false;
+                  }
+                  if (err) {
+                    console.log(err);
+                  }
+                });
+              }
+            }
+
+          });
+          /*
           User.find({ segment: 'quierobesarte.es', requestNumber: {$gt:0} }).limit(pagTotal).skip(pagTotal * pageCount).then(
             users => {
               if (users && users.length>0) {
@@ -112,7 +135,7 @@ const migrate = (obj) => {
                             console.log(err);
                           }
                         });
-                        /*
+                        
                         if(originalUser.requestNumber>0) {
                           if(user.attempts && user.attempts.length>0){
                             var found = user.attempts.find(function(item) {
@@ -190,7 +213,7 @@ const migrate = (obj) => {
                           if (err) {
                             console.log(err);
                           }
-                        });*/
+                        });
                       } else {
                         intenalCount++;
                         console.log(count + ' ' + total);
@@ -204,6 +227,7 @@ const migrate = (obj) => {
               } 
             }
           );
+          */
         }
       }
     }
