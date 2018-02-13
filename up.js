@@ -26,7 +26,6 @@ console_stamp(logger, {
 
 
 var util = require('util');
-var fs = require('fs');
 var process = require('process');
 require('dotenv').load();
 
