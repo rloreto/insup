@@ -570,7 +570,6 @@ const createRelationship = (username, onlyPublic) => {
         reject(e);
       }).then(relationship => {
         if (relationship) {
-          trace('OK');
           return getUserFromDb(username);
         } else {
           reject();
@@ -582,8 +581,8 @@ const createRelationship = (username, onlyPublic) => {
           attempts++;
           setAttempts(user, segment, attempts++);
           user.save((err, response) => {
-            debugger;
             if(!err){
+              trace('[OK]');
               resolve(true);
             }
           });
@@ -789,7 +788,6 @@ const gettUserInfo = (loginUser, targerUsername) => {
       .spread(function(data, followers) {
         trace('[OK]');
         data.followers = followers;
-        console.log(data.followers[0])
         resolve(data);
       });
   });
