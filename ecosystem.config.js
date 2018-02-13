@@ -10,6 +10,6 @@ module.exports = {
   },{
     "name"        : "InsUp VideosDeBodaInfo",
     "script"      : "./instagram.js",
-    "args"        : "-s'vieosdeboda.info' 'Por.][12pPor.][12p'"
+    "args"        : "-s'videosdeboda.info' 'Por.][12pPor.][12p'"
   }]
 }
