@@ -7,5 +7,9 @@ module.exports = {
     "name"        : "InsUp NachoDelRioBodas",
     "script"      : "./instagram.js",
     "args"        : "-r 'nachodelriobodas' 'nacandfeez'"
+  },{
+    "name"        : "InsUp VideosDeBodaInfo",
+    "script"      : "./instagram.js",
+    "args"        : "-s'vieosdeboda.info' 'Por.][12pPor.][12p'"
   }]
 }
