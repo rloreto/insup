@@ -90,18 +90,28 @@ if (program.remove && !program.update) {
 }
 
 if (program.update && !program.remove) {
-  var username = process.env.USER_INSTAGRAM || program.args[1];
-  var pwd = process.env.PWD_INSTAGRAM || program.args[2];
+  var username = process.env.USER_INSTAGRAM || program.args[0];
+  var pwd = process.env.PWD_INSTAGRAM || program.args[1];
   var force = false;
-    program.rawArgs.forEach((item)=>{
+  var segment = '';
+  var targetUserName = '';
+
+  program.rawArgs.forEach((item)=>{
     if(item === '--force') {
       force = true;
+    }
+    if(item.indexOf('--segment')>=0) {
+      segment = item.split('=')[1];
+    }
+
+    if(item.indexOf('--targetUserName')>=0) {
+      targetUserName = item.split('=')[1];
     }
   })
   if (username && pwd) {
     login(username, pwd);
     updateTargetFollowers(
-      { id: username, password: pwd },
+      { id: username, password: pwd, targetUserName, force, segment  },
       program.args[0],
       force
     ).then(function() {

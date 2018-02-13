@@ -13,8 +13,18 @@ var maxConsecutiveCreateOperations = 5;
 var maxConsecutiveRemoveOperations = 5;
 var waitBetweenOperationMinutes = 3
 
-var sleepms = require('sleep-ms');
-require('console-stamp')(console, '[HH:MM:ss.l]');
+const fs = require('fs');
+const output = fs.createWriteStream('./stdout.log');
+const errorOutput = fs.createWriteStream('./stderr.log');
+const logger = new console.Console(output, errorOutput);
+
+console_stamp(logger, {
+  stdout: output,
+  stderr: errorOutput,
+  pattern: 'HH:MM:ss.l',
+});
+
+
 var util = require('util');
 var fs = require('fs');
 var process = require('process');
@@ -67,6 +77,23 @@ var User = mongoose.model('User', {
   unfollowed: Boolean
 });
 
+var UserBase = mongoose.model('UserBase', {
+  segment: String,
+  userId: String,
+  username: String,
+  attempts: [],
+  unfollowBy: []
+});
+
+var UserBaseRequest = mongoose.model('UserBaseRequest', {
+  requestDate: Date,
+  requestNumber: { type: Number, default: 0 },
+  order: Number,
+  unfollowed: Boolean,
+  isFollower: Boolean,
+  isPrivate: Boolean,
+});
+
 var progressCounter = 0;
 
 const login = (userId, password) => {
@@ -90,7 +117,12 @@ const setDevice = (username) => {
   );
 }
 
-const updateTargetFollowers = (loginUser, targetUsername, force) => {
+const updateTargetFollowers = (obj) => {
+  var loginUser= { id: obj.id, password: obj.password }
+  var targetUsername = obj.targetUserName;
+  var force= obj.force;
+  var segment= obj.segment;
+
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var currentSession;
@@ -128,7 +160,7 @@ const updateTargetFollowers = (loginUser, targetUsername, force) => {
             currentSession: session
           };
 
-          getFollowers(targetUser, followerCount, true, force).then(function() {
+          getFollowers(targetUser, followerCount, true, force, segment).then(function() {
             resolve();
           });
         });
@@ -654,7 +686,7 @@ const gettUserInfo = (loginUser, targerUsername) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers, force) => {
+const getFollowers = (user, followerCount, saveUsers, force, segment) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
@@ -684,7 +716,7 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id).then(function(
+                  saveUpdateBaseFollowers(page, followers, user.id, segment).then(function(
                     followers
                   ) {
                     Array.prototype.push.apply(feedsDone, followers);
@@ -777,6 +809,52 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
           parseInt(count / total * 100),
           "Saving user '" + user.username + "'"
         );
+        count++;
+        if (count === total) {
+          resolveSave(feeds);
+        }
+      });
+    });
+  });
+
+  return promise;
+};
+
+const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
+  var total = feeds.length;
+  var count = 0;
+  providerId = providerId | 0;
+  var promise = new Promise(function(resolveSave) {
+    _.forEach(feeds, function(value, index) {
+      var userId = value.id;
+      var username = value.username;
+
+      //console.log(index);
+
+      UserBase.findOne({ username: username, segment: segment }, function(
+        err,
+        user
+      ) {
+        if (!err) {
+
+          if (!user) {
+            user = new UserBase({
+              segment: segment,
+              userId: userId,
+              username: username
+            });
+
+            user.save(function(err) {
+              if (err) {
+                console.log(err);
+              }
+            });
+          } 
+        }
+        /*printPercent(
+          parseInt(count / total * 100),
+          "Saving user '" + user.username + "'"
+        );*/
         count++;
         if (count === total) {
           resolveSave(feeds);
