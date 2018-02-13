@@ -295,6 +295,7 @@ const start = loginUser => {
                         if (!follower) {
                           createRelationship(item.username).then(added => {
                             if (added) {
+                              trace('Created relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               counter++;
                               if(counter % maxConsecutiveCreateOperations === 0) {
                                 pause = true;
@@ -303,11 +304,14 @@ const start = loginUser => {
                                   doNext = true;
                                 });
                               }
+                            } else {
+                              trace('Ignore relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             }
                             doNext = true;
                           }).catch((e)=>{     
-                            if (e){
+                            if (e) {
                               trace(e)
+                              trace('Error creating relationship: '+ item.username, +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               if(e.message === 'Please wait a few minutes before you try again.') {
                                 pause = true;
                                 waitFor(waitBetweenOperationMinutes, function() {
@@ -320,8 +324,9 @@ const start = loginUser => {
                           })
                         } else {
                           doNext = true;
+                          trace('Ignore follower relationship: ' + item.username, + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         }
-                        trace('Creating relationship ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                        
                         
                       });
                     } else {
