@@ -57,25 +57,6 @@ var db = mongoose.connection;
 db.on('error', logger.error.bind(logger, 'connection error:'));
 
 
-var User = mongoose.model('User', {
-  segment: String,
-  userId: String,
-  username: String,
-  isFollower: Boolean,
-  isPrivate: Boolean,
-  providerId: String,
-  createdDate: Date,
-  requestDate: Date,
-  requestNumber: { type: Number, default: 0 },
-  pictureUrl: String,
-  order: Number,
-  gender: String,
-  age: Number,
-  eyeMakeup: Boolean,
-  lipMakeup: Boolean,
-  isFaceEval: Boolean,
-  unfollowed: Boolean
-});
 
 var UserBase = mongoose.model('UserBase', {
   segment: String,
@@ -85,14 +66,6 @@ var UserBase = mongoose.model('UserBase', {
   unfollowBy: []
 });
 
-var UserBaseRequest = mongoose.model('UserBaseRequest', {
-  requestDate: Date,
-  requestNumber: { type: Number, default: 0 },
-  order: Number,
-  unfollowed: Boolean,
-  isFollower: Boolean,
-  isPrivate: Boolean,
-});
 
 var progressCounter = 0;
 
@@ -190,7 +163,7 @@ const updateTargetFollowers = (obj) => {
         });
       } else {
         var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        saveUpdateFollowers(1, feeds, user.id).then(function(followers) {
+        saveUpdateFollowers(1, feeds, user.id, segment).then(function(followers) {
           resolve();
         });
       }
@@ -262,13 +235,18 @@ const start = loginUser => {
                             item.eyeMakeup = faceInfo.makeup.eyeMakeup;
                           }
                           item.isFaceEval = true;
-                          item.isFollower = isFollower(
-                            item.userId,
+                          var follower = isFollower(
+                            item.username,
                             data.currentUserInfo.followers
                           );
+
+                          if(follower) {
+                            setInfo(item, segment, 'isFollower', true)
+                          }
+
                           item.save().then(respose => {
-                            //if(!item.isFollower && item.gender === "female"){
-                            if (!item.isFollower) {
+                            var follower = getInfo(item, segment, 'isFollower');
+                            if (!follower) {
                               createRelationship(
                                 item.username,
                                 onlyPublic
@@ -303,13 +281,18 @@ const start = loginUser => {
                         }
                       );
                     } else if (item && item.isFaceEval) {
-                      item.isFollower = isFollower(
-                        item.userId,
+                      var follower = isFollower(
+                        item.username,
                         data.currentUserInfo.followers
                       );
+
+                      if(follower) {
+                        setInfo(item, segment, 'isFollower', true)
+                      }
+                      
                       item.save().then(respose => {
-                        //if(!item.isFollower && item.gender === "female"){
-                        if (!item.isFollower) {
+                        var follower = getInfo(item, segment, 'isFollower');
+                        if (!follower) {
                           createRelationship(item.username).then(added => {
                             if (added) {
                               counter++;
@@ -322,21 +305,23 @@ const start = loginUser => {
                               }
                             }
                             doNext = true;
-                          }).catch((e)=>{
-                            trace(e)
-                            if (e && e.message === 'Please wait a few minutes before you try again.') {
-                              pause = true;
-                              waitFor(waitBetweenOperationMinutes, function() {
-                                pause = false;
-                                doNext = true;
-                              });
-                            }
+                          }).catch((e)=>{     
+                            if (e){
+                              trace(e)
+                              if(e.message === 'Please wait a few minutes before you try again.') {
+                                pause = true;
+                                waitFor(waitBetweenOperationMinutes, function() {
+                                  pause = false;
+                                  doNext = true;
+                                });
+                              }
+                            } 
                             doNext = true;
                           })
                         } else {
                           doNext = true;
                         }
-                        trace('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                        trace('Creating relationship ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         
                       });
                     } else {
@@ -359,6 +344,8 @@ const start = loginUser => {
   });
   return promise;
 };
+
+
 
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
@@ -446,6 +433,41 @@ const removeNotFollowers = (loginUser, forze) => {
   return promise;
 };
 
+const setInfo = (user, currentUsername, property, value) => {
+  debugger;
+  if(user.info && user.info.length>0){
+    var found = user.info.find(function(item) {
+      return item.un === currentUsername;
+    });
+    if (!found){
+      var obj = {
+        un: currentUsername
+      }
+      obj[property] = value;
+
+      user.info.push(onj)
+    } else {
+      obj[property] = value;
+    }
+  } else {
+    var obj = {
+      un: currentUsername
+    }
+    obj[property] = value;
+    user.info.push(obj)
+  }
+}
+const getInfo = (user, currentUsername, property) => {
+  debugger;
+  if(user.info && user.info.length>0){
+    var found = user.info.find(function(item) {
+      return item.un === currentUsername;
+    });
+    if (found){
+      return found[property];
+    }
+  } 
+}
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
@@ -467,11 +489,12 @@ const waitFor = (minutes, done) => {
 
 const getUsers = numLimits => {
   var promise = new Promise(function(resolve) {
-    var query = User.find({
-      requestNumber: 0,
-      unfollowed: { $ne: true },
-      isFollower: { $ne: true },
-      isPrivate: { $ne: true }
+  var query = UserBase.find({
+      /*"$or": [
+        "attempts.un":  { "$eq": segment },
+        "attempts.un":  { "$lt": 1 },
+      ],*/
+      "attempts.un":  { "$ne": segment }
     });
     if (numLimits && Number.isInteger(numLimits)) {
       query = query.limit(numLimits);
@@ -496,7 +519,7 @@ const createRelationship = (username, onlyPublic) => {
           user = response.data;
         } else {
           if (response.error.name === 'IGAccountNotFoundError') {
-            User.remove({ username: username }).then(err => {
+            UserBase.remove({ username: username, segment: segment }).then(err => {
               if (err.result.ok === 1) {
                 trace('removed:' + username);
               }
@@ -512,7 +535,7 @@ const createRelationship = (username, onlyPublic) => {
               trace('Creating relationship to ' + username);
               return Client.Relationship.create(currentSession, user.id);
             } else {
-              getUserFromDb(segment, username).then(
+              getUserFromDb(username).then(
                 user => {
                   if (user) {
                     user.isPrivate = true;
@@ -527,10 +550,11 @@ const createRelationship = (username, onlyPublic) => {
             return Client.Relationship.create(currentSession, user.id);
           }
         } else {
-          if (user && !user.requestNumber) {
-            getUserFromDb(segment, username).then((item)=>{
+          var attempts = getAttempts(username, segment);
+          if (!attempts) {
+            getUserFromDb(username).then((item)=>{
               if (item) {
-                (item.requestDate = Date.now()), (item.requestNumber = 1);
+                setAttempts(item, segment, 1);
                 item.save();
               }
             })
@@ -542,17 +566,21 @@ const createRelationship = (username, onlyPublic) => {
       }).then(relationship => {
         if (relationship) {
           trace('OK');
-          return getUserFromDb(segment, username);
+          return getUserFromDb(username);
         } else {
           reject();
         }
       })
       .then(user => {
         if (user) {
-          user.requestDate = Date.now();
-          user.requestNumber += 1;
-          user.save(response => {
-            resolve(true);
+          var attempts = getAttempts(user, segment);
+          attempts++;
+          setAttempts(user, segment, attempts++);
+          user.save((err, response) => {
+            debugger;
+            if(!err){
+              resolve(true);
+            }
           });
         } else {
           resolve(false);
@@ -563,6 +591,8 @@ const createRelationship = (username, onlyPublic) => {
 
   return promise;
 };
+
+
 
 const destroyRelationship = username => {
   var promise = new Promise(function(resolve, reject) {
@@ -585,7 +615,7 @@ const destroyRelationship = username => {
       .then(relationship => {
         trace('[OK]');
         if (relationship) {
-          return getUserFromDb(segment, username);
+          return getUserFromDb(username);
         } else {
           resolve();
         }
@@ -597,22 +627,72 @@ const destroyRelationship = username => {
 
   return promise;
 };
+
+const getAttempts = (user, currentUsername) => {
+  if(user.attempts && user.attempts.length>0){
+    var found = user.attempts.find(function(item) {
+      return item.un === currentUsername;
+    });
+    if (found){
+      return found.n;
+    }
+  } 
+  return 0;
+}
+
+const setAttempts = (user, currentUsername, value) => {
+  if(user.attempts && user.attempts.length>0){
+    var found = user.attempts.find(function(item) {
+      return item.un === currentUsername
+    });
+    if (!found){
+      user.attempts.push({
+        un: currentUsername,
+        n: value
+      })
+    } else {
+      found.n = value;
+    }
+  } else {
+    user.attempts.push({
+      un: currentUsername,
+      n: value
+    })
+  }
+
+}
+
 const getFollowingNotFollowers = userInfo => {
   return _.differenceBy(userInfo.followings, userInfo.followers, 'id');
 };
 
-const isFollower = (userId, providerFollowers) => {
+const isFollower = (username, providerFollowers) => {
   var user = _.find(providerFollowers, {
-    id: parseInt(userId)
+    username: parseInt(username)
   });
   return user ? true : false;
 };
 
 const setUnfollowed = username => {
-  User.findOne({ segment: segment, username: username }, function(err, user) {
+  UserBase.findOne({ segment: segment, username: username }, function(err, user) {
     if (!err) {
       if (user) {
-        user.unfollowed = true;
+        if(user.attempts && user.attempts.length>0){
+          var found = user.attempts.find(function(item) {
+            return item.un === segment;
+          });
+
+          if(!found) {
+            user.unfollowBy.push({
+              un: segment
+            });
+          }
+
+        } else {
+          user.unfollowBy.push({
+            un: segment
+          });
+        }
         user.save(function(err) {
           if (err) {
             trace(err,'error');
@@ -643,15 +723,15 @@ const getUserId = (loginUser, username) => {
   return promise;
 };
 
-const getUserFromDb = (segment, username) => {
+const getUserFromDb = (username) => {
   var promise = new Promise(function(resolve, reject) {
-    User.find({ segment: segment, username: username }).then(
+    UserBase.find({ segment: 'weddings', username: username }).then(
       users => {
         if (users && users.length>0) {
           for(var i=1; i<users.length; i++) {
             trace('Duplicates for username: ' + username);
             var id = users[i].get('id');
-            User.remove({_id: id}).then((response)=>{
+            UserBase.remove({_id: id}).then((response)=>{
               if (response.result && !response.result.ok) {
                 reject(response);
               } 
@@ -704,6 +784,7 @@ const gettUserInfo = (loginUser, targerUsername) => {
       .spread(function(data, followers) {
         trace('[OK]');
         data.followers = followers;
+        console.log(data.followers[0])
         resolve(data);
       });
   });
@@ -740,7 +821,7 @@ const getFollowers = (user, followerCount, saveUsers, force, segment) => {
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateBaseFollowers(page, followers, user.id, segment).then(function(
+                  saveUpdateFollowers(page, followers, user.id, segment).then(function(
                     followers
                   ) {
                     Array.prototype.push.apply(feedsDone, followers);
@@ -788,7 +869,7 @@ const getFollowing = user => {
   return promise;
 };
 
-const saveUpdateFollowers = (page, feeds, providerId) => {
+const saveUpdateFollowers = (page, feeds, providerId, segment) => {
   var total = feeds.length;
   var count = 0;
   providerId = providerId | 0;
@@ -802,69 +883,14 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
         pictureUrl = value.picture;
       }
       //trace(index);
-      User.find({ segment: segment, username: username }, function(
-        err,
-        users
-      ) {
-        if (!err) {
-          if (!users || (users && users.length === 0)) {
-            user = new User({
-              providerId: providerId,
-              segment: segment,
-              userId: userId,
-              username: username,
-              createdDate: Date.now(),
-              order: (index + 1) * page,
-              pictureUrl: pictureUrl,
-              requestNumber: 0
-            });
-          } else {
-            user = users[0]
-            user.order = (index + 1) * page;
-          }
-
-          user.save(function(err) {
-            if (err) {
-              trace(err, 'error');
-            }
-          });
-        }
-        printPercent(
-          parseInt(count / total * 100),
-          "Saving user '" + user.username + "'"
-        );
-        count++;
-        if (count === total) {
-          resolveSave(feeds);
-        }
-      });
-    });
-  });
-
-  return promise;
-};
-
-const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
-  var total = feeds.length;
-  var count = 0;
-  providerId = providerId | 0;
-  var promise = new Promise(function(resolveSave) {
-    _.forEach(feeds, function(value, index) {
-      var userId = value.id;
-      var username = value.username;
-
-      //trace(index);
-
-      UserBase.findOne({ username: username, segment: segment }, function(
+      UserBase.findOne({ segment: segment, username: username }, function(
         err,
         user
       ) {
         if (!err) {
-
           if (!user) {
             user = new UserBase({
               segment: segment,
-              userId: userId,
               username: username
             });
 
@@ -872,13 +898,11 @@ const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
               if (err) {
                 trace(err, 'error');
               }
+              trace('Added new user: ' + username + ' to segment: ' + segment);
             });
           } 
         }
-        /*printPercent(
-          parseInt(count / total * 100),
-          "Saving user '" + user.username + "'"
-        );*/
+
         count++;
         if (count === total) {
           resolveSave(feeds);
@@ -889,6 +913,8 @@ const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
 
   return promise;
 };
+
+
 
 const createFile = filename => {
   fs.open(filename, 'r', function(err, fd) {
