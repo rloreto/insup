@@ -19,6 +19,7 @@ const output = fs.createWriteStream('./stdout.log');
 const errorOutput = fs.createWriteStream('./stderr.log');
 const logger = new console.Console(output, errorOutput);
 
+
 console_stamp(logger, {
   stdout: output,
   stderr: errorOutput,
@@ -53,7 +54,7 @@ mongoose.connect(
 );
 mongoose.Promise = Promise;
 var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
+db.on('error', logger.error.bind(logger, 'connection error:'));
 
 
 var User = mongoose.model('User', {
@@ -94,6 +95,30 @@ var UserBaseRequest = mongoose.model('UserBaseRequest', {
 });
 
 var progressCounter = 0;
+
+const trace = (str, type) => {
+  type = type || 'log';
+  switch(type){
+    case 'log':
+      logger.log(str);
+      console.log(str);
+    break;
+    case 'error':
+      logger.error(str);
+      console.error(str);
+    break;
+    case 'warn':
+      logger.warn(str);
+      console.warn(str);
+    break;
+    case 'info':
+      logger.info(str);
+      console.info(str);
+    break;
+  }
+
+}
+
 
 const login = (userId, password) => {
   setDevice(userId);
@@ -150,7 +175,7 @@ const updateTargetFollowers = (obj) => {
           loginUser.id,
           loginUser.password
         ).then(function(session) {
-          console.log('Procesing...');
+          trace('Procesing...');
 
           var followerCount = user.followerCount;
           var targetUser = {
@@ -260,7 +285,7 @@ const start = loginUser => {
                                 }
                                 doNext = true;
                               }).catch((e)=>{
-                                console.log(e)
+                                trace(e, 'error')
                                 if (e && e.message === 'Please wait a few minutes before you try again.') {
                                   pause = true;
                                   waitFor(waitBetweenOperationMinutes, function() {
@@ -273,7 +298,7 @@ const start = loginUser => {
                             } else {
                               doNext = true;
                             }
-                            console.log(counter + '-' + globalCounter);
+                            trace(counter + '-' + globalCounter);
                           });
                         }
                       );
@@ -298,7 +323,7 @@ const start = loginUser => {
                             }
                             doNext = true;
                           }).catch((e)=>{
-                            console.log(e)
+                            trace(e)
                             if (e && e.message === 'Please wait a few minutes before you try again.') {
                               pause = true;
                               waitFor(waitBetweenOperationMinutes, function() {
@@ -311,7 +336,7 @@ const start = loginUser => {
                         } else {
                           doNext = true;
                         }
-                        console.log('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                        trace('Creating relationship ' + counter + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         
                       });
                     } else {
@@ -391,9 +416,9 @@ const removeNotFollowers = (loginUser, forze) => {
                           });
                         }
                         doNext = true;
-                        console.log('Destroying relationship ' + counter + ' of ' + max);
+                        trace('Destroying relationship ' + counter + ' of ' + max);
                       }).catch((e)=>{
-                        console.log(e)
+                        trace(e, 'error')
                         if (e && e.message === 'Please wait a few minutes before you try again.') {
                           pause = true;
                           waitFor(waitBetweenOperationMinutes, function() {
@@ -424,12 +449,12 @@ const removeNotFollowers = (loginUser, forze) => {
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
-  console.log("Waiting " + minutes + " for next loop...");
+  trace("Waiting " + minutes + " for next loop...");
   var internalPointer = setInterval(function(){
     internalCounter++;
     var remainingMs = (total - (internalCounter * 1000))/1000
     if(remainingMs % 60 === 0) {
-      console.log('Remaining time: ' + remainingMs / 60 + ' minutes');
+      trace('Remaining time: ' + remainingMs / 60 + ' minutes');
     }
     if((internalCounter *  1000) > total){
       clearInterval(internalPointer);
@@ -452,7 +477,7 @@ const getUsers = numLimits => {
       query = query.limit(numLimits);
     }
     query.sort({ order: 1 }).then(users => {
-      console.log('Recieved ' + users.length + ' new users.');
+      trace('Recieved ' + users.length + ' new users.');
       resolve(users);
     });
   });
@@ -473,7 +498,7 @@ const createRelationship = (username, onlyPublic) => {
           if (response.error.name === 'IGAccountNotFoundError') {
             User.remove({ username: username }).then(err => {
               if (err.result.ok === 1) {
-                console.log('removed:' + username);
+                trace('removed:' + username);
               }
               resolve(false);
             });
@@ -484,7 +509,7 @@ const createRelationship = (username, onlyPublic) => {
         if (user && !user.friendshipStatus.outgoing_request) {
           if (onlyPublic) {
             if (!user.friendshipStatus.is_private) {
-              console.log('Creating relationship to ' + username);
+              trace('Creating relationship to ' + username);
               return Client.Relationship.create(currentSession, user.id);
             } else {
               getUserFromDb(segment, username).then(
@@ -498,7 +523,7 @@ const createRelationship = (username, onlyPublic) => {
               reject();
             }
           } else {
-            console.log('Creating relationship to ' + username);
+            trace('Creating relationship to ' + username);
             return Client.Relationship.create(currentSession, user.id);
           }
         } else {
@@ -516,7 +541,7 @@ const createRelationship = (username, onlyPublic) => {
         reject(e);
       }).then(relationship => {
         if (relationship) {
-          console.log('OK');
+          trace('OK');
           return getUserFromDb(segment, username);
         } else {
           reject();
@@ -548,7 +573,7 @@ const destroyRelationship = username => {
           user = response.data;
         }
         if (user && !user.friendshipStatus.outgoing_request) {
-          console.log('Destroy relationship with ' + username);
+          trace('Destroy relationship with ' + username);
           return Client.Relationship.destroy(currentSession, user.id);
         } else {
           resolve();
@@ -558,7 +583,7 @@ const destroyRelationship = username => {
         reject(e);
       })
       .then(relationship => {
-        console.log('[OK]');
+        trace('[OK]');
         if (relationship) {
           return getUserFromDb(segment, username);
         } else {
@@ -590,7 +615,7 @@ const setUnfollowed = username => {
         user.unfollowed = true;
         user.save(function(err) {
           if (err) {
-            console.log(err);
+            trace(err,'error');
           }
         });
       }
@@ -624,13 +649,13 @@ const getUserFromDb = (segment, username) => {
       users => {
         if (users && users.length>0) {
           for(var i=1; i<users.length; i++) {
-            console.log('Duplicates for username: ' + username);
+            trace('Duplicates for username: ' + username);
             var id = users[i].get('id');
             User.remove({_id: id}).then((response)=>{
               if (response.result && !response.result.ok) {
                 reject(response);
               } 
-              console.log('Removed duplicate item ' +  id);
+              trace('Removed duplicate item ' +  id);
             })
           }
           resolve(users[0]);
@@ -667,17 +692,17 @@ const gettUserInfo = (loginUser, targerUsername) => {
           name: user._params.username,
           currentSession: data.currentSession
         };
-        console.log('Getting ' + targerUsername + ' followings');
+        trace('Getting ' + targerUsername + ' followings');
         return [data, getFollowing(data.currentUser)];
       })
       .spread(function(data, followings) {
-        console.log('[OK]');
+        trace('[OK]');
         data.followings = followings;
-        console.log('Getting ' + targerUsername + ' followers');
+        trace('Getting ' + targerUsername + ' followers');
         return [data, getFollowers(data.currentUser, data.followerCount)];
       })
       .spread(function(data, followers) {
-        console.log('[OK]');
+        trace('[OK]');
         data.followers = followers;
         resolve(data);
       });
@@ -776,7 +801,7 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
       if (!pictureUrl) {
         pictureUrl = value.picture;
       }
-      //console.log(index);
+      //trace(index);
       User.find({ segment: segment, username: username }, function(
         err,
         users
@@ -800,7 +825,7 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
 
           user.save(function(err) {
             if (err) {
-              console.log(err);
+              trace(err, 'error');
             }
           });
         }
@@ -828,7 +853,7 @@ const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
       var userId = value.id;
       var username = value.username;
 
-      //console.log(index);
+      //trace(index);
 
       UserBase.findOne({ username: username, segment: segment }, function(
         err,
@@ -845,7 +870,7 @@ const saveUpdateBaseFollowers = (page, feeds, providerId, segment) => {
 
             user.save(function(err) {
               if (err) {
-                console.log(err);
+                trace(err, 'error');
               }
             });
           } 
@@ -870,12 +895,12 @@ const createFile = filename => {
     if (err) {
       fs.writeFile(filename, '', function(err) {
         if (err) {
-          console.log(err);
+          trace(err, 'error');
         }
-        console.log('The file was saved!');
+        trace('The file was saved!');
       });
     } else {
-      console.log('The file exists!');
+      trace('The file exists!');
     }
   });
 };
@@ -884,7 +909,7 @@ const printPercent = (number, post) => {
   if (!post) {
     post = '';
   }
-  console.log(number + '% ' + post);
+  trace(number + '% ' + post);
 };
 
 module.exports = { login, updateTargetFollowers, start, removeNotFollowers };

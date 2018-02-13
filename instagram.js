@@ -1,5 +1,15 @@
 var program = require('commander-plus');
 
+const console_stamp = require('console-stamp')
+const fs = require('fs');
+const output = fs.createWriteStream('./stdout.log');
+const errorOutput = fs.createWriteStream('./stderr.log');
+const logger = new console.Console(output, errorOutput);
+console_stamp(logger, {
+  stdout: output,
+  stderr: errorOutput,
+  pattern: 'HH:MM:ss.l'
+});
 
 const {
   updateTargetFollowers,
@@ -56,7 +66,6 @@ program
   .option('-r, --remove', 'Remove not followers')
   .parse(process.argv);
 
-console.log(program.args);
 
 if (
   (program.args.length === 0 || program.start) &&
@@ -69,6 +78,8 @@ if (
     login(username, pwd);
     start({ id: username, password: pwd }).then(function() {
       process.exit();
+    }).catch((e)=>{
+      logger.error(e);
     });
   } else {
     startWitLogin();
@@ -83,6 +94,8 @@ if (program.remove && !program.update) {
     login(username, pwd);
     removeNotFollowers({ id: username, password: pwd }, true).then(function() {
       process.exit();
+    }).catch((e)=>{
+      logger.error(e);
     });
   } else {
     removeWitLogin();
@@ -116,6 +129,8 @@ if (program.update && !program.remove) {
       force
     ).then(function() {
       process.exit();
+    }).catch((e)=>{
+      logger.error(e);
     });
   } else {
     updateTargetFollowersWitLogin(program.args[0],force);
