@@ -13,6 +13,7 @@ var maxConsecutiveCreateOperations = 5;
 var maxConsecutiveRemoveOperations = 5;
 var waitBetweenOperationMinutes = 3
 
+const console_stamp = require('console-stamp')
 const fs = require('fs');
 const output = fs.createWriteStream('./stdout.log');
 const errorOutput = fs.createWriteStream('./stderr.log');
@@ -21,11 +22,11 @@ const logger = new console.Console(output, errorOutput);
 console_stamp(logger, {
   stdout: output,
   stderr: errorOutput,
-  pattern: 'HH:MM:ss.l',
+  pattern: 'HH:MM:ss.l'
 });
 
-
 var util = require('util');
+var fs = require('fs');
 var process = require('process');
 require('dotenv').load();
 
