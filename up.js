@@ -123,11 +123,11 @@ const loadUserConfig = (username) => {
 
 const login = (userId, password) => {
   const console_stamp = require('console-stamp')
-  const output = fs.createWriteStream('./out.' + userId +'.log');
-  const errorOutput = fs.createWriteStream('./err.' + userId +'.log');
+  const output = fs.createWriteStream('./logs/' + userId + '/out.log');
+  const errorOutput = fs.createWriteStream('./logs/' + userId +'/err.log');
   logger = new console.Console(output, errorOutput);
   db.on('error', logger.error.bind(logger, 'connection error:'));
-  
+
   console_stamp(logger, {
     stdout: output,
     stderr: errorOutput,
