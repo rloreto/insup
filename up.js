@@ -141,7 +141,7 @@ const login = (userId, password) => {
   console_stamp(logger, {
     stdout: output,
     stderr: errorOutput,
-    pattern: 'DD-MM-YYYY HH:MM:ss.l'
+    pattern: 'dd-mm-yyyy HH:MM:ss.l'
   });
 
   var promise = new Promise(function(resolve, reject) {
