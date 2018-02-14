@@ -466,7 +466,7 @@ const removeNotFollowers = (loginUser, forze) => {
                         trace('Destroying relationship ' + counter + ' of ' + max);
                       }).catch((e)=>{
                         trace(e, 'error')
-                        if (e && e.message === 'Please wait a few minutes before you try again.') {
+                        if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                           pause = true;
                           waitFor(waitBetweenOperationMinutes, function() {
                             pause = false;
