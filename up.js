@@ -14,11 +14,13 @@ var maxConsecutiveCreateOperations;
 var maxConsecutiveRemoveOperations;
 var waitBetweenOperationMinutes;
 var segments;
+var logger;
 
 
 
 var util = require('util');
 var process = require('process');
+const fs = require('fs');
 require('dotenv').load();
 
 var mongoose = require('mongoose');
@@ -121,10 +123,9 @@ const loadUserConfig = (username) => {
 
 const login = (userId, password) => {
   const console_stamp = require('console-stamp')
-  const fs = require('fs');
   const output = fs.createWriteStream('./out.' + userId +'.log');
   const errorOutput = fs.createWriteStream('./err.' + userId +'.log');
-  const logger = new console.Console(output, errorOutput);
+  logger = new console.Console(output, errorOutput);
 
   console_stamp(logger, {
     stdout: output,
