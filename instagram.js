@@ -93,7 +93,7 @@ if (program.remove && !program.update) {
 
   if (username && pwd) {
     login(username, pwd).then(()=>{
-      removeNotFollowers({ id: username, password: pwd }, false).then(function() {
+      removeNotFollowers({ id: username, password: pwd }, true).then(function() {
         process.exit();
       }).catch((e)=>{
         logger.error(e);
