@@ -123,6 +123,12 @@ const loadUserConfig = (username) => {
 
 const login = (userId, password) => {
   const console_stamp = require('console-stamp')
+  var dir = './log/'+ userId;
+
+  if (!fs.existsSync(dir)){
+      fs.mkdirSync(dir);
+  }
+
   const output = fs.createWriteStream('./logs/' + userId + '/out.log');
   const errorOutput = fs.createWriteStream('./logs/' + userId +'/err.log');
   logger = new console.Console(output, errorOutput);
