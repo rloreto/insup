@@ -123,14 +123,18 @@ const loadUserConfig = (username) => {
 
 const login = (userId, password) => {
   const console_stamp = require('console-stamp')
-  var dir = './log/'+ userId;
+  var dir = './logs/';
 
   if (!fs.existsSync(dir)){
       fs.mkdirSync(dir);
   }
+  dir = './logs/' + userId.replace('.','_');
 
-  const output = fs.createWriteStream('./logs/' + userId + '/out.log');
-  const errorOutput = fs.createWriteStream('./logs/' + userId +'/err.log');
+  if (!fs.existsSync(dir)){
+      fs.mkdirSync(dir);
+  }
+  const output = fs.createWriteStream('./logs/' + userId.replace('.','_') + '/out.log');
+  const errorOutput = fs.createWriteStream('./logs/' + userId.replace('.','_') +'/err.log');
   logger = new console.Console(output, errorOutput);
   db.on('error', logger.error.bind(logger, 'connection error:'));
 
