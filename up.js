@@ -47,7 +47,7 @@ mongoose.connect(
 );
 mongoose.Promise = Promise;
 var db = mongoose.connection;
-db.on('error', logger.error.bind(logger, 'connection error:'));
+
 
 var UserBase = mongoose.model('UserBase', {
   segment: String,
@@ -126,7 +126,8 @@ const login = (userId, password) => {
   const output = fs.createWriteStream('./out.' + userId +'.log');
   const errorOutput = fs.createWriteStream('./err.' + userId +'.log');
   logger = new console.Console(output, errorOutput);
-
+  db.on('error', logger.error.bind(logger, 'connection error:'));
+  
   console_stamp(logger, {
     stdout: output,
     stderr: errorOutput,
