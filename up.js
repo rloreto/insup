@@ -86,7 +86,7 @@ const trace = (str, type) => {
   type = type || 'log';
   switch(type){
     case 'log':
-      logger.log(str);
+      logger.log('[' + segment + '] ' +str);
       console.log(str);
     break;
     case 'error':
@@ -796,7 +796,6 @@ const getUserFromDb = (username) => {
     }
     debugger;
     const filter = _.assign(segmentFilter, { username: username });
-    console.log(filter);
     UserBase.find(filter).then(
       users => {
         if (users && users.length>0) {
