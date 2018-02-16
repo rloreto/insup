@@ -1,9 +1,3 @@
-var segment = 'nachodelriobodas';
-
-var userId;
-var password;
-var loopTime = 60 * 60 * 1000;
-
 var maxOperationsPerHour;
 var maxRemoveOperationsPerHour;
 var startHour;
@@ -58,7 +52,7 @@ var UserBase = mongoose.model('UserBase', {
   userId: String,
   username: String,
   attempts: [],
-  unfollowBy: []
+  info: []
 });
 
 var User = mongoose.model('User', {
@@ -83,7 +77,7 @@ const trace = (str, type) => {
   type = type || 'log';
   switch(type){
     case 'log':
-      logger.log('[' + segment + '] ' +str);
+      logger.log('[' + currentLoginUser.id + '] ' +str);
       console.log(str);
     break;
     case 'error':
@@ -135,6 +129,10 @@ const setUserConfig = (username) => {
         loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes || 5
         segments = config.segments || ["weddings"]
 
+        getUserStatus().then((availablePercentByUserSegmets)=>{
+          trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
+        });
+
         resolve(config);
       } else {
         trace("[FAILED]");
@@ -147,6 +145,12 @@ const setUserConfig = (username) => {
 }
 
 const login = (userId, password) => {
+  currentLoginUser = {
+    id: userId,
+    password: password
+  };
+
+
   const console_stamp = require('console-stamp')
   var dir = './logs/';
 
@@ -172,12 +176,6 @@ const login = (userId, password) => {
   var promise = new Promise(function(resolve, reject) {
     setUserConfig(userId).then((config)=>{
       setDevice(userId);
-      this.userId = userId;
-      this.password = password;
-      this.currentLoginUser = {
-        id: userId,
-        password: password
-      };
       resolve();
     })
   });
@@ -185,14 +183,13 @@ const login = (userId, password) => {
 
 };
 
-var segment, device, storage;
+var device, storage;
 var Client = require('instagram-private-api').V1;
 
 const setDevice = (username) => {
-  segment = username;
-  device = new Client.Device(segment);
+  device = new Client.Device(username);
   storage = new Client.CookieFileStorage(
-    __dirname + '/cookies/' + segment + '.json'
+    __dirname + '/cookies/' + username + '.json'
   );
 }
 
@@ -200,8 +197,7 @@ const updateTargetFollowers = (obj) => {
   var loginUser= { id: obj.id, password: obj.password }
   var targetUsername = obj.targetUserName;
   var force= obj.force;
-  var segment= obj.segment;
-
+  var currentSegment = obj.segment;
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var currentSession;
@@ -238,14 +234,14 @@ const updateTargetFollowers = (obj) => {
             name: targetUsername,
             currentSession: session
           };
-
-          getFollowers(targetUser, followerCount, true, force, segment).then(function() {
+          
+          getFollowers(targetUser, followerCount, true, force), currentSegment.then(function() {
             resolve();
           });
         });
       } else {
         var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        saveUpdateFollowers(1, feeds, user.id, segment).then(function(followers) {
+        saveUpdateFollowers(1, feeds, user.id, currentLoginUser.id, currentSegment).then(function(followers) {
           resolve();
         });
       }
@@ -274,7 +270,7 @@ const start = loginUser => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
-    getCurrentUserInfo(loginUser).then(currentUserInfo => {
+    getUserInfo(loginUser).then(currentUserInfo => {
       var data = {
         currentUserInfo: currentUserInfo
       };
@@ -286,7 +282,7 @@ const start = loginUser => {
       var globalCounter = 0;
       var targetUsers = [];
 
-      getUsers(maxGetUsers).then(users => {
+      getUsers(maxGetUsers, loginUser.id).then(users => {
         targetUsers = users;
       });
       var startTime;
@@ -313,7 +309,7 @@ const start = loginUser => {
             if (internalCounter + 1 > targetUsers.length) {
               internalCounter = 0;
               targetUsers = [];
-              getUsers(maxGetUsers).then(users => {
+              getUsers(maxGetUsers, loginUser.id).then(users => {
                 targetUsers = users;
                 isLoading = false;
               });
@@ -353,14 +349,15 @@ const start = loginUser => {
                         );
 
                         if(follower) {
-                          setInfo(item, segment, 'isFollower', true)
+                          setInfo(item, currentLoginUser.id, 'isFollower', true)
                         }
 
                         item.save().then(respose => {
-                          var follower = getInfo(item, segment, 'isFollower');
+                          var follower = getInfo(item, currentLoginUser.id, 'isFollower');
                           if (!follower) {
                             createRelationship(
                               item.username,
+                              segments,
                               onlyPublic
                             ).then(added => {
                               if (added) {
@@ -398,13 +395,13 @@ const start = loginUser => {
                     );
 
                     if(follower) {
-                      setInfo(item, segment, 'isFollower', true)
+                      setInfo(item, currentLoginUser.id, 'isFollower', true)
                     }
                     
                     item.save().then(respose => {
-                      var follower = getInfo(item, segment, 'isFollower');
+                      var follower = getInfo(item, currentLoginUser.id, 'isFollower');
                       if (!follower) {
-                        createRelationship(item.username).then(added => {
+                        createRelationship(item.username, segments, onlyPublic).then(added => {
                           if (added) {
                             trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             counter++;
@@ -431,8 +428,9 @@ const start = loginUser => {
                                 isLoading = false;
                               });
                             }
-                          } 
-                          
+                          } else {
+                            isLoading = false;
+                          }
                         })
                       } else {
                         trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
@@ -471,7 +469,7 @@ const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
-    getCurrentUserInfo(loginUser)
+    getUserInfo(loginUser)
       .then(currentUserInfo => {
         var users = getFollowingNotFollowers(currentUserInfo);
         if (users.length === 0) {
@@ -524,7 +522,7 @@ const removeNotFollowers = (loginUser, forze) => {
                   if (item) {
                     destroyRelationship(item.username).then(user => {
                       if (user) {
-                        setUnfollowed(user.username);
+                        setUnfollowed(user.username, currentLoginUser.id, segments);
                       }
                       counter++;
                       trace('Destroying relationship ' + counter + ' of ' + max);
@@ -545,6 +543,8 @@ const removeNotFollowers = (loginUser, forze) => {
                           pause = false;
                           isLoading = false;
                         });
+                      } else {
+                        isLoading = false;
                       }
                     });
                   } else {
@@ -627,15 +627,20 @@ const waitFor = (minutes, done) => {
   }, 1000);
 }
 
-const getUsers = numLimits => {
+const getUsers = (numLimits, username) => {
   var promise = new Promise(function(resolve) {
   var query = UserBase.find({
-      /*"$or": [
-        "attempts.un":  { "$eq": segment },
-        "attempts.un":  { "$lt": 1 },
-      ],*/
-      "attempts.un":  { "$ne": segment }
+      "attempts.un":  { "$ne": username },
+      "$or": [{
+          "info.un":  { "$eq": username },
+          "info.unfollowed":  { "$ne": true}
+        },
+        {
+          "info.un":  { "$ne": username }
+        }
+      ]
     });
+    
     if (numLimits && Number.isInteger(numLimits)) {
       query = query.limit(numLimits);
     }
@@ -651,7 +656,7 @@ const getUsers = numLimits => {
 _.bind(start, this);
 _.bind(removeNotFollowers, this);
 
-const createRelationship = (username, onlyPublic) => {
+const createRelationship = (username, segments, onlyPublic) => {
   var promise = new Promise(function(resolve, reject) {
       getUserId(currentLoginUser, username)
       .then(response => {
@@ -660,12 +665,19 @@ const createRelationship = (username, onlyPublic) => {
           user = response.data;
         } else {
           if (response.error.name === 'IGAccountNotFoundError') {
-            UserBase.remove({ username: username, segment: segment }).then(err => {
-              if (err.result.ok === 1) {
-                trace('removed:' + username);
-              }
-              resolve(false);
-            });
+            var total = segments.length;
+            var counter = 0 ;
+            _.each(segments, (segment) => {
+              UserBase.remove({ username: username, segment: segment }).then(err => {
+                if (err.result.ok === 1) {
+                  trace('removed:' + username);
+                }
+                counter++;
+                if(counter == total) {
+                  resolve(false);
+                }
+              });
+            })
           }
           return;
         }
@@ -691,11 +703,11 @@ const createRelationship = (username, onlyPublic) => {
             return Client.Relationship.create(currentSession, user.id);
           }
         } else {
-          var attempts = getAttempts(username, segment);
+          var attempts = getAttempts(username, username);
           if (!attempts) {
             getUserFromDb(username).then((item)=>{
               if (item) {
-                setAttempts(item, segment, 1);
+                setAttempts(item, username, 1);
                 item.save();
               }
             })
@@ -713,9 +725,9 @@ const createRelationship = (username, onlyPublic) => {
       })
       .then(user => {
         if (user) {
-          var attempts = getAttempts(user, segment);
+          var attempts = getAttempts(user, username);
           attempts++;
-          setAttempts(user, segment, attempts++);
+          setAttempts(user, username, attempts++);
           user.save((err, response) => {
             if(!err){
               trace('[OK]');
@@ -811,34 +823,41 @@ const isFollower = (username, providerFollowers) => {
   return user ? true : false;
 };
 
-const setUnfollowed = username => {
-  UserBase.findOne({ segment: segment, username: username }, function(err, user) {
-    if (!err) {
-      if (user) {
-        if(user.attempts && user.attempts.length>0){
-          var found = user.attempts.find(function(item) {
-            return item.un === segment;
-          });
-
-          if(!found) {
-            user.unfollowBy.push({
-              un: segment
+const setUnfollowed = (username, unfollowBy, segments) => {
+  _.each(segments, (segment)=>{
+    UserBase.findOne({ segment: segment, username: username }, function(err, user) {
+      if (!err) {
+        if (user) {
+          if(user.info && user.info.length > 0){
+            var found = user.info.find(function(item) {
+              return item.un === username;
+            });
+  
+            if(!found) {
+              user.info.push({
+                un: unfollowBy,
+                unfollowed: true
+              });
+            } else {
+              found.unfollowed = true;
+            }
+  
+          } else {
+            user.info.push({
+              un: unfollowBy,
+              unfollowed: true
             });
           }
-
-        } else {
-          user.unfollowBy.push({
-            un: segment
+          user.save(function(err) {
+            if (err) {
+              trace(err,'error');
+            }
           });
         }
-        user.save(function(err) {
-          if (err) {
-            trace(err,'error');
-          }
-        });
       }
-    }
-  });
+    });
+  })
+  
 };
 
 const getUserId = (loginUser, username) => {
@@ -873,8 +892,8 @@ const getUserFromDb = (username) => {
         })
       });
     }
-
-    const filter = _.assign(segmentFilter, { username: username });
+   
+    const filter = _.assign(segmentFilter, { username: username});
     UserBase.find(filter).then(
       users => {
         if (users && users.length>0) {
@@ -902,18 +921,15 @@ const getUserInfoByUserName = (loginUser, username) => {
   return gettUserInfo(loginUser, username);
 };
 
-const getCurrentUserInfo = loginUser => {
-  return gettUserInfo(loginUser, segment);
-};
 
-const gettUserInfo = (loginUser, targerUsername) => {
+const getUserInfo = (loginUser) => {
   var promise = new Promise(function(resolve) {
     Client.Session.create(device, storage, loginUser.id, loginUser.password)
       .then(function(session) {
         var data = {
           currentSession: session
         };
-        return [data, Client.Account.searchForUser(session, targerUsername)];
+        return [data, Client.Account.searchForUser(session, loginUser.id)];
       })
       .spread(function(data, user) {
         data.followerCount = user._params.followerCount;
@@ -922,13 +938,13 @@ const gettUserInfo = (loginUser, targerUsername) => {
           name: user._params.username,
           currentSession: data.currentSession
         };
-        trace('Getting ' + targerUsername + ' followings');
+        trace('Getting ' + loginUser.id + ' followings');
         return [data, getFollowing(data.currentUser)];
       })
       .spread(function(data, followings) {
         trace('[OK]');
         data.followings = followings;
-        trace('Getting ' + targerUsername + ' followers');
+        trace('Getting ' + loginUser.id + ' followers');
         return [data, getFollowers(data.currentUser, data.followerCount)];
       })
       .spread(function(data, followers) {
@@ -940,7 +956,7 @@ const gettUserInfo = (loginUser, targerUsername) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers, force, segment) => {
+const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
@@ -970,7 +986,7 @@ const getFollowers = (user, followerCount, saveUsers, force, segment) => {
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id, segment).then(function(
+                  saveUpdateFollowers(page, followers, user.id, currentSegment).then(function(
                     followers
                   ) {
                     Array.prototype.push.apply(feedsDone, followers);
@@ -1018,7 +1034,48 @@ const getFollowing = user => {
   return promise;
 };
 
+const getUserStatus =  function() {
+  var promise = new Promise((resolve) => {
+    UserBase.count({ segment: 
+      {
+        "$in": segments 
+      }
+    }).then((total) => {
+      UserBase.count({
+        "$or": [
+            {
+                "attempts.un": {
+                    "$eq": currentLoginUser.id
+                },
+                "attempts.n": {
+                    "$lt": 1
+                }
+            },
+            {
+                "attempts.un": {
+                    "$ne": currentLoginUser.id
+                }
+            },
+            {
+                "info.un": {
+                    "$eq": currentLoginUser.id
+                },
+                "info.unfollowed": {
+                    "$ne": true
+                }
+            }
+        ]
+      }).then((available) => {
+        resolve((available / total * 100).toFixed(2) );
+      });
+    });
+  });
+
+  return promise;
+}
+
 const saveUpdateFollowers = (page, feeds, providerId, segment) => {
+
   var total = feeds.length;
   var count = 0;
   providerId = providerId | 0;
@@ -1062,8 +1119,6 @@ const saveUpdateFollowers = (page, feeds, providerId, segment) => {
 
   return promise;
 };
-
-
 
 const createFile = filename => {
   fs.open(filename, 'r', function(err, fd) {
