@@ -6,8 +6,8 @@ var loopTime = 60 * 60 * 1000;
 
 var maxOperationsPerHour;
 var maxRemoveOperationsPerHour;
-var upPeriodStart;
-var upPeriodEnd;
+var startHour;
+var activityHours;
 var maxGetUsers;
 var onlyPublic;
 var maxConsecutiveCreateOperations;
@@ -16,6 +16,10 @@ var waitBetweenOperationMinutes;
 var segments;
 var logger;
 
+Date.prototype.addHours = function(h){
+  this.setHours(this.getHours()+h);
+  return this;
+}
 
 
 var util = require('util');
@@ -61,13 +65,15 @@ var User = mongoose.model('User', {
   username: String,
   maxOperationsPerHour: Number,
   maxRemoveOperationsPerHour: Number,
-  attemupPeriodStartpts: Number,
-  upPeriodStart: Number,
+  attemstartHourpts: Number,
+  startHour: Number,
+  activityHours: Number,
   maxGetUsers: Number,
   onlyPublic: Boolean,
   maxConsecutiveCreateOperations: Number,
   maxConsecutiveRemoveOperations: Number,
   waitBetweenOperationMinutes: Number,
+  loadConfigurationUpdateFrecuencyMinutes: Number,
   segments: []
 });
 
@@ -96,23 +102,42 @@ const trace = (str, type) => {
 
 }
 
-const loadUserConfig = (username) => {
+const setUserConfig = (username) => {
   var promise = new Promise(function(resolve, reject) {
+    trace("Load configuration of user: " + username);
     User.findOne({ username: username }).then((user) => {
       if (user) {
-        resolve({
+        var config = {
           maxOperationsPerHour: user.maxOperationsPerHour,
           maxRemoveOperationsPerHour: user.maxRemoveOperationsPerHour,
-          upPeriodStart: user.upPeriodStart,
-          upPeriodEnd: user.upPeriodEnd,
+          startHour: user.startHour,
+          activityHours: user.activityHours,
           maxGetUsers: user.maxGetUsers,
           onlyPublic: user.onlyPublic,
           maxConsecutiveCreateOperations: user.maxConsecutiveCreateOperations,
           maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
           waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
+          loadConfigurationUpdateFrecuencyMinutes: user.loadConfigurationUpdateFrecuencyMinutes,
           segments: user.segments
-        });
+        };
+     
+        trace(JSON.stringify(config));
+        trace("[OK]");
+        maxOperationsPerHour = config.maxOperationsPerHour || 60;
+        maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour || 60;
+        startHour = config.startHour || 8;
+        activityHours = config.activityHours || 16;
+        maxGetUsers = config.maxGetUsers || 1000;
+        onlyPublic = config.onlyPublic || false;
+        maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations || 5;
+        maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations || 5;
+        waitBetweenOperationMinutes = config.waitBetweenOperationMinutes || 3
+        loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes || 5
+        segments = config.segments || ["weddings"]
+
+        resolve(config);
       } else {
+        trace("[FAILED]");
         resolve({})
       }
     })
@@ -145,18 +170,7 @@ const login = (userId, password) => {
   });
 
   var promise = new Promise(function(resolve, reject) {
-    loadUserConfig(userId).then((config)=>{
-      console.log(config);
-      maxOperationsPerHour = config.maxOperationsPerHour || 60;
-      maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour || 60;
-      upPeriodStart = config.upPeriodStart || 10;
-      upPeriodEnd = config.upPeriodEnd || 22;
-      maxGetUsers = config.maxGetUsers || 1000;
-      onlyPublic = config.onlyPublic || false;
-      maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations || 5;
-      maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations || 5;
-      waitBetweenOperationMinutes = config.waitBetweenOperationMinutes || 3
-      segments = config.segments || ["weddings"]
+    setUserConfig(userId).then((config)=>{
       setDevice(userId);
       this.userId = userId;
       this.password = password;
@@ -241,6 +255,21 @@ const updateTargetFollowers = (obj) => {
   return promise;
 };
 
+
+
+const isActivityPeriod = () => {
+  var now = new Date();
+
+  var ini = new Date();
+  ini.setHours(startHour);
+  ini.setMinutes(0);
+  ini.setSeconds(0);
+  var end = new Date(ini.getTime());
+  end.addHours(activityHours);
+
+  return(ini <= now && now <= end);
+}
+
 const start = loginUser => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
@@ -260,160 +289,179 @@ const start = loginUser => {
       getUsers(maxGetUsers).then(users => {
         targetUsers = users;
       });
+      var startTime;
+      var pause = false;
+      var isLoading = false; 
+      var timeLimit;
+      var isShow = false;
+      var loopCounter = 0;
+      var loadConfigurationUpdateFrecuencySeconds = loadConfigurationUpdateFrecuencyMinutes * 60;
 
       function loop() {
-        var date = new Date();
-        var currentHour = date.getHours();
-  
-        var pause = false;
+        loopCounter++;
 
-        if (!(upPeriodStart < currentHour && currentHour <= upPeriodEnd)) {
+        if (!isActivityPeriod()) {
           clearInterval(loopPointer);
           removeNotFollowers(loginUser);
         } else {
-          function internalLoop() {
-            if (!pause && targetUsers && targetUsers.length > 0) {
-              if (internalCounter + 1 > targetUsers.length) {
-                internalCounter = 0;
-                targetUsers = [];
-                getUsers(maxGetUsers).then(users => {
-                  targetUsers = users;
-                });
+          if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
+            setUserConfig(loginUser.id);
+          }
+
+          if (!pause && !isLoading && targetUsers && targetUsers.length > 0) {
+            isLoading = true;
+            if (internalCounter + 1 > targetUsers.length) {
+              internalCounter = 0;
+              targetUsers = [];
+              getUsers(maxGetUsers).then(users => {
+                targetUsers = users;
+                isLoading = false;
+              });
+            } else {
+              if(!startTime){
+                startTime = new Date();
+                timeLimit = new Date(startTime.getTime()).addHours(1);
+              }
+              
+              if (new Date() > timeLimit) {
+                startTime = null;
+                counter = 0;
+                isLoading = false;
+                isShow = false;
               } else {
-                if (counter >= max) {
-                  clearInterval(internalPointer);
-                  counter = 0;
-                  doNext = true;
-                } else {
-                  if (doNext) {
-                    var item = targetUsers[internalCounter];
-                    internalCounter++;
-                    doNext = false;
-                    globalCounter++;
+                if (counter < max) {
+                  var item = targetUsers[internalCounter];
+                  internalCounter++;
+                  globalCounter++;
 
-                    //TODO Remove
-                    item.isFaceEval = true;
+                  //TODO Remove
+                  item.isFaceEval = true;
 
-                    if (item && !item.isFaceEval) {
-                      getFaceInfo(item.pictureUrl.replace('s150x150', '')).then(
-                        faceInfo => {
-                          if (faceInfo) {
-                            item.gender = faceInfo.gender;
-                            item.age = faceInfo.age;
-                            item.lipMakeup = faceInfo.makeup.lipMakeup;
-                            item.eyeMakeup = faceInfo.makeup.eyeMakeup;
-                          }
-                          item.isFaceEval = true;
-                          var follower = isFollower(
-                            item.username,
-                            data.currentUserInfo.followers
-                          );
+                  if (item && !item.isFaceEval) {
+                    getFaceInfo(item.pictureUrl.replace('s150x150', '')).then(
+                      faceInfo => {
+                        if (faceInfo) {
+                          item.gender = faceInfo.gender;
+                          item.age = faceInfo.age;
+                          item.lipMakeup = faceInfo.makeup.lipMakeup;
+                          item.eyeMakeup = faceInfo.makeup.eyeMakeup;
+                        }
+                        item.isFaceEval = true;
+                        var follower = isFollower(
+                          item.username,
+                          data.currentUserInfo.followers
+                        );
 
-                          if(follower) {
-                            setInfo(item, segment, 'isFollower', true)
-                          }
+                        if(follower) {
+                          setInfo(item, segment, 'isFollower', true)
+                        }
 
-                          item.save().then(respose => {
-                            var follower = getInfo(item, segment, 'isFollower');
-                            if (!follower) {
-                              createRelationship(
-                                item.username,
-                                onlyPublic
-                              ).then(added => {
-                                if (added) {
-                                  counter++;
-                                  if(counter % maxConsecutiveCreateOperations === 0) {
-                                    pause = true;
-                                    waitFor(waitBetweenOperationMinutes, function() {
-                                      pause = false;
-                                      doNext = true;
-                                    });
-                                  }
-                                }
-                                doNext = true;
-                              }).catch((e)=>{
-                                trace(e, 'error')
-                                if (e && e.message === 'Please wait a few minutes before you try again.') {
+                        item.save().then(respose => {
+                          var follower = getInfo(item, segment, 'isFollower');
+                          if (!follower) {
+                            createRelationship(
+                              item.username,
+                              onlyPublic
+                            ).then(added => {
+                              if (added) {
+                                counter++;
+                                if(counter % maxConsecutiveCreateOperations === 0) {
                                   pause = true;
                                   waitFor(waitBetweenOperationMinutes, function() {
+                                    isLoading = false;
                                     pause = false;
-                                    doNext = true;
                                   });
                                 }
-                                doNext = true;
-                              });
-                            } else {
-                              doNext = true;
-                            }
-                            trace(counter + '-' + globalCounter);
-                          });
-                        }
-                      );
-                    } else if (item && item.isFaceEval) {
-                      var follower = isFollower(
-                        item.username,
-                        data.currentUserInfo.followers
-                      );
+                              }
+                              isLoading = false;
+                            }).catch((e)=>{
+                              trace(e, 'error')
+                              if (e && e.message === 'Please wait a few minutes before you try again.') {
+                                pause = true;
+                                waitFor(waitBetweenOperationMinutes, function() {
+                                  isLoading = false;
+                                  pause = false;
+                                });
+                              }
+                              isLoading = false;
+                            });
+                          } else {
+                            isLoading = false;
+                          }
+                        });
+                      }
+                    );
+                  } else if (item && item.isFaceEval) {
+                    var follower = isFollower(
+                      item.username,
+                      data.currentUserInfo.followers
+                    );
 
-                      if(follower) {
-                        setInfo(item, segment, 'isFollower', true)
+                    if(follower) {
+                      setInfo(item, segment, 'isFollower', true)
+                    }
+                    
+                    item.save().then(respose => {
+                      var follower = getInfo(item, segment, 'isFollower');
+                      if (!follower) {
+                        createRelationship(item.username).then(added => {
+                          if (added) {
+                            trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            counter++;
+                            if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
+                              pause = true;
+                              waitFor(waitBetweenOperationMinutes, function() {
+                                isLoading = false;
+                                pause = false;
+                              });
+                            }
+                          } else {
+                            trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                          }
+                          isLoading = false;
+                        }).catch((e)=>{     
+                          if (e) {
+                            trace(e)
+                            trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+                              pause = true;
+                              waitFor(waitBetweenOperationMinutes, function() {
+                                isLoading = false;
+                                pause = false;
+                                isLoading = false;
+                              });
+                            }
+                          } 
+                          
+                        })
+                      } else {
+                        trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                        isLoading = false;
                       }
                       
-                      item.save().then(respose => {
-                        var follower = getInfo(item, segment, 'isFollower');
-                        if (!follower) {
-                          createRelationship(item.username).then(added => {
-                            if (added) {
-                              trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                              counter++;
-                              if(counter % maxConsecutiveCreateOperations === 0) {
-                                pause = true;
-                                waitFor(waitBetweenOperationMinutes, function() {
-                                  pause = false;
-                                  doNext = true;
-                                });
-                              }
-                            } else {
-                              trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                            }
-                            doNext = true;
-                          }).catch((e)=>{     
-                            if (e) {
-                              trace(e)
-                              trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                              if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
-                                pause = true;
-                                waitFor(waitBetweenOperationMinutes, function() {
-                                  pause = false;
-                                  doNext = true;
-                                });
-                              }
-                            } 
-                            doNext = true;
-                          })
-                        } else {
-                          doNext = true;
-                          trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                        }
-                        
-                        
-                      });
-                    } else {
-                      doNext = true;
+                    });
+                  } else {
+                    isLoading = false;
+                    if(!isShow){
+                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                      isShow = true;
                     }
+                  }
+                } else {
+                  isLoading = false;
+                  if(!isShow){
+                    trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                    isShow = true;
                   }
                 }
               }
             }
           }
-          internalLoop();
-          var internalPointer = setInterval(internalLoop, 500);
           iteration++;
         }
       }
-
       loop();
-      var loopPointer = setInterval(loop, loopTime);
+      var loopPointer = setInterval(loop, 1000);
     });
   });
   return promise;
@@ -435,70 +483,90 @@ const removeNotFollowers = (loginUser, forze) => {
         users = users.reverse();
         var max = maxRemoveOperationsPerHour;
         var counter = 0;
-        var doNext = true;
         var globalCounter = 0;
+        var startTime;
         var pause = false;
+        var isLoading = false;
+        var timeLimit;
+        var isShow = false;
+        var loopCounter = 0;
+        var loadConfigurationUpdateFrecuencySeconds = loadConfigurationUpdateFrecuencyMinutes * 60;
+
         function loop() {
+          loopCounter++;
           var date = new Date();
           var currentHour = date.getHours();
 
-          if (
-            upPeriodStart < currentHour &&
-            currentHour <= upPeriodEnd &&
-            !forze
-          ) {
+          if (isActivityPeriod() && !forze) {
             clearInterval(loopPointer);
             start(loginUser);
           } else {
-            function internalLoop() {
-              if(!pause){
-                if (counter >= max) {
-                  clearInterval(internalPointer);
-                  counter = 0;
-                  doNext = true;
-                } else {
-                  if (doNext) {
-                    var item = users[globalCounter];
-                    doNext = false;
-                    globalCounter++;
-                    if (item) {
-                      destroyRelationship(item.username).then(user => {
-                        if (user) {
-                          setUnfollowed(user.username);
-                        }
-                        counter++;
-                        if(counter % maxConsecutiveRemoveOperations === 0) {
-                          pause = true;
-                          waitFor(waitBetweenOperationMinutes, function() {
-                            pause = false;
-                            internalPointer = setInterval(internalLoop, 500);
-                          });
-                        }
-                        doNext = true;
-                        trace('Destroying relationship ' + counter + ' of ' + max);
-                      }).catch((e)=>{
-                        trace(e, 'error')
-                        if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
-                          pause = true;
-                          waitFor(waitBetweenOperationMinutes, function() {
-                            pause = false;
-                            internalPointer = setInterval(internalLoop, 500);
-                          });
-                        }
-                      });
+            if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
+              setUserConfig(loginUser.id);
+            }
+
+            if(!pause && !isLoading){
+              isLoading = true;
+              if(!startTime){
+                startTime = new Date();
+                timeLimit = new Date(startTime.getTime()).addHours(1);
+              }
+
+              if (new Date() > timeLimit) {
+                counter = 0;
+                isLoading = false;
+                startTime = null;
+                isShow = false;
+              } else {
+                if (counter < max) {
+                  var item = users[globalCounter];
+                  globalCounter++;
+                  if (item) {
+                    destroyRelationship(item.username).then(user => {
+                      if (user) {
+                        setUnfollowed(user.username);
+                      }
+                      counter++;
+                      trace('Destroying relationship ' + counter + ' of ' + max);
+                      if(counter % maxConsecutiveRemoveOperations === 0 && counter !== max) {
+                        pause = true;
+                        waitFor(waitBetweenOperationMinutes, function() {
+                          pause = false;
+                          isLoading = false;
+                        });
+                      }
+                      isLoading = false;
+                      
+                    }).catch((e)=>{
+                      trace(e, 'error')
+                      if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+                        pause = true;
+                        waitFor(waitBetweenOperationMinutes, function() {
+                          pause = false;
+                          isLoading = false;
+                        });
+                      }
+                    });
+                  } else {
+                    isLoading = false;
+                    if(!isShow){
+                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                      isShow = true;
                     }
                   }
+                } else {
+                  isLoading = false;
+                  if(!isShow){
+                    trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                    isShow = true;
+                  }  
                 }
               }
             }
-            
-            internalLoop();
-            var internalPointer = setInterval(internalLoop, 500);
           }
         }
-
         loop();
-        var loopPointer = setInterval(loop, loopTime);
+        var loopPointer = setInterval(loop, 1000);
       });
   });
 
@@ -506,7 +574,6 @@ const removeNotFollowers = (loginUser, forze) => {
 };
 
 const setInfo = (user, currentUsername, property, value) => {
-  debugger;
   if(user.info && user.info.length>0){
     var found = user.info.find(function(item) {
       return item.un === currentUsername;
@@ -544,7 +611,7 @@ const getInfo = (user, currentUsername, property) => {
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
   var internalCounter = 0; 
-  trace("Waiting " + minutes + " for next loop...");
+  trace("Waiting " + minutes + " minutes for next loop...");
   var internalPointer = setInterval(function(){
     internalCounter++;
     var remainingMs = (total - (internalCounter * 1000))/1000
@@ -806,7 +873,7 @@ const getUserFromDb = (username) => {
         })
       });
     }
-    debugger;
+
     const filter = _.assign(segmentFilter, { username: username });
     UserBase.find(filter).then(
       users => {
