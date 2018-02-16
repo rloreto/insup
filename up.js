@@ -1,3 +1,6 @@
+require('dotenv').load();
+var process = require('process');
+var env = process.env.ENVIRONMENT || 'dev';
 var maxOperationsPerHour;
 var maxRemoveOperationsPerHour;
 var startHour;
@@ -17,7 +20,7 @@ Date.prototype.addHours = function(h){
 
 
 var util = require('util');
-var process = require('process');
+
 const fs = require('fs');
 require('dotenv').load();
 
@@ -72,6 +75,8 @@ var User = mongoose.model('User', {
 });
 
 var progressCounter = 0;
+
+
 
 const trace = (str, type) => {
   type = type || 'log';
@@ -214,6 +219,7 @@ const updateTargetFollowers = (obj) => {
     };
 
     getUserId(loginUser, targetUsername).then(response => {
+      debugger;
       var user;
       if (!response.hasError) {
         user = response.data;
@@ -234,8 +240,8 @@ const updateTargetFollowers = (obj) => {
             name: targetUsername,
             currentSession: session
           };
-          
-          getFollowers(targetUser, followerCount, true, force), currentSegment.then(function() {
+
+          getFollowers(targetUser, followerCount, false, force), currentSegment.then(function() {
             resolve();
           });
         });
@@ -576,7 +582,7 @@ const removeNotFollowers = (loginUser, forze) => {
 const setInfo = (user, currentUsername, property, value) => {
   if(user.info && user.info.length>0){
     var found = user.info.find(function(item) {
-      return item.un === currentUsername;
+      return item.un === currentUsername && item[property];
     });
     if (!found){
       var obj = {
@@ -584,9 +590,9 @@ const setInfo = (user, currentUsername, property, value) => {
       }
       obj[property] = value;
 
-      user.info.push(onj)
+      user.info.push(obj)
     } else {
-      obj[property] = value;
+      found[property] = value;
     }
   } else {
     var obj = {
@@ -945,7 +951,7 @@ const getUserInfo = (loginUser) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.id + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount)];
+        return [data, getFollowers(data.currentUser, data.followerCount, false,env === 'prod')];
       })
       .spread(function(data, followers) {
         trace('[OK]');
@@ -956,7 +962,7 @@ const getUserInfo = (loginUser) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => {
+const getFollowers = (user, followerCount, saveUsers, force) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
@@ -969,6 +975,7 @@ const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => 
 
   var promise = new Promise(function(resolve) {
     if (!fs.existsSync(cacheFile) || force) {
+      trace('Getting followers from live. NO CACHE');
       var timeoutObj = setInterval(function() {
         if (counter > followerCount) {
           clearInterval(timeoutObj);
@@ -976,7 +983,7 @@ const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => 
           fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
           resolve(feedsDone);
         } else {
-          printPercent(parseInt(counter / followerCount * 100));
+          //printPercent(parseInt(counter / followerCount * 100));
           if (getMore) {
             getMore = false;
             accountFollowers.get().then(function(results) {
@@ -986,7 +993,7 @@ const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => 
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id, currentSegment).then(function(
+                  saveUpdateFollowers(page, followers, user.id).then(function(
                     followers
                   ) {
                     Array.prototype.push.apply(feedsDone, followers);
@@ -1008,7 +1015,9 @@ const getFollowers = (user, followerCount, saveUsers, force, currentSegment) => 
         }
       }, 1000);
     } else {
+      trace('Getting followers from CACHE')
       var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      printPercent(100);
       resolve(feeds);
     }
   });
@@ -1077,9 +1086,9 @@ const getUserStatus =  function() {
   return promise;
 }
 
-const saveUpdateFollowers = (page, feeds, providerId, segment) => {
+const saveUpdateFollowers = (page, feeds, providerId) => {
 
-  var total = feeds.length;
+  var total = feeds.length * segments.length;
   var count = 0;
   providerId = providerId | 0;
   var promise = new Promise(function(resolveSave) {
@@ -1091,32 +1100,46 @@ const saveUpdateFollowers = (page, feeds, providerId, segment) => {
       if (!pictureUrl) {
         pictureUrl = value.picture;
       }
-      //trace(index);
-      UserBase.findOne({ segment: segment, username: username }, function(
-        err,
-        user
-      ) {
-        if (!err) {
-          if (!user) {
-            user = new UserBase({
-              segment: segment,
-              username: username
-            });
+      _.each(segments, (segment)=>{
+        UserBase.findOne({ segment: segment, username: username }, (err,user) => {
+          if (!err) {
+            var isNew;
+            var canSave = true;
+            if (!user ) {
+              user = new UserBase({
+                segment: segment,
+                username: username
+              });
+              isNew = true;
+            }
+            
+            if(!isNew && !getInfo(user, currentLoginUser.id, 'isFollower')){
+              setInfo(user, currentLoginUser.id, 'isFollower', true);
+            } else {
+              canSave = false
+            }
+            if(canSave) {
+              user.save(function(err) {
+                if (err) {
+                  trace(err, 'error');
+                }
+                trace('Update user: ' + username + ' to segment: ' + segment);
+              });
+            }
 
-            user.save(function(err) {
-              if (err) {
-                trace(err, 'error');
-              }
-              trace('Added new user: ' + username + ' to segment: ' + segment);
-            });
-          } 
-        }
 
-        count++;
-        if (count === total) {
-          resolveSave(feeds);
-        }
-      });
+   
+            
+          }
+  
+          count++;
+          if (count === total) {
+            resolveSave(feeds);
+          }
+        });
+      })
+
+
     });
   });
 
