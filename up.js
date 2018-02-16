@@ -1042,6 +1042,9 @@ const getUserStatus =  function() {
       }
     }).then((total) => {
       UserBase.count({
+        "segment": {
+          "$in": segments
+        },
         "$or": [
             {
                 "attempts.un": {
