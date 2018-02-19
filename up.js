@@ -285,11 +285,11 @@ const start = loginUser => {
       var iteration = 0;
       var doNext = true;
       var internalCounter = 0;
-      var globalCounter = 0;
       var targetUsers = [];
 
       getUsers(maxGetUsers, loginUser.id).then(users => {
         targetUsers = users;
+        internalCounter = 0;
       });
       var startTime;
       var pause = false;
@@ -334,7 +334,6 @@ const start = loginUser => {
                 if (counter < max) {
                   var item = targetUsers[internalCounter];
                   internalCounter++;
-                  globalCounter++;
 
                   //TODO Remove
                   item.isFaceEval = true;
@@ -409,7 +408,7 @@ const start = loginUser => {
                       if (!follower) {
                         createRelationship(item.username, segments, onlyPublic).then(added => {
                           if (added) {
-                            trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             counter++;
                             if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
                               pause = true;
@@ -419,13 +418,13 @@ const start = loginUser => {
                               });
                             }
                           } else {
-                            trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                           }
                           isLoading = false;
                         }).catch((e)=>{     
                           if (e) {
                             trace(e)
-                            trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                               pause = true;
                               waitFor(waitBetweenOperationMinutes, function() {
@@ -439,7 +438,7 @@ const start = loginUser => {
                           }
                         })
                       } else {
-                        trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + globalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                        trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                         isLoading = false;
                       }
                       
@@ -487,7 +486,7 @@ const removeNotFollowers = (loginUser, forze) => {
         users = users.reverse();
         var max = maxRemoveOperationsPerHour;
         var counter = 0;
-        var globalCounter = 0;
+        var internalCounter = 0;
         var startTime;
         var pause = false;
         var isLoading = false;
@@ -523,8 +522,8 @@ const removeNotFollowers = (loginUser, forze) => {
                 isShow = false;
               } else {
                 if (counter < max) {
-                  var item = users[globalCounter];
-                  globalCounter++;
+                  var item = users[internalCounter];
+                  internalCounter++;
                   if (item) {
                     destroyRelationship(item.username).then(user => {
                       if (user) {
