@@ -708,11 +708,11 @@ const createRelationship = (username, segments, onlyPublic) => {
             return Client.Relationship.create(currentSession, user.id);
           }
         } else {
-          var attempts = getAttempts(username, username);
+          var attempts = getAttempts(username, currentLoginUser.id);
           if (!attempts) {
             getUserFromDb(username).then((item)=>{
               if (item) {
-                setAttempts(item, username, 1);
+                setAttempts(item, currentLoginUser.id, 1);
                 item.save();
               }
             })
@@ -732,7 +732,7 @@ const createRelationship = (username, segments, onlyPublic) => {
         if (user) {
           var attempts = getAttempts(user, username);
           attempts++;
-          setAttempts(user, username, attempts++);
+          setAttempts(user, currentLoginUser.id, attempts++);
           user.save((err, response) => {
             if(!err){
               trace('[OK]');
