@@ -433,9 +433,8 @@ const start = loginUser => {
                                 isLoading = false;
                               });
                             }
-                          } else {
-                            isLoading = false;
-                          }
+                          } 
+                          isLoading = false;
                         })
                       } else {
                         trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
