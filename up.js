@@ -52,7 +52,6 @@ var db = mongoose.connection;
 
 var UserBase = mongoose.model('UserBase', {
   segment: String,
-  userId: String,
   username: String,
   attempts: [],
   info: []
@@ -219,7 +218,6 @@ const updateTargetFollowers = (obj) => {
     };
 
     getUserId(loginUser, targetUsername).then(response => {
-      debugger;
       var user;
       if (!response.hasError) {
         user = response.data;
@@ -241,7 +239,7 @@ const updateTargetFollowers = (obj) => {
             currentSession: session
           };
 
-          getFollowers(targetUser, followerCount, false, force), currentSegment.then(function() {
+          getFollowers(targetUser, followerCount, true, force).then(function() {
             resolve();
           });
         });
@@ -357,11 +355,11 @@ const start = loginUser => {
                           setInfo(item, currentLoginUser.id, 'isFollower', true)
                         }
 
-                        item.save().then(respose => {
-                          var follower = getInfo(item, currentLoginUser.id, 'isFollower');
+                        item.save().then(resporesponsese => {
+                          var follower = getInfo(respose, currentLoginUser.id, 'isFollower');
                           if (!follower) {
                             createRelationship(
-                              item.username,
+                              respose.username,
                               segments,
                               onlyPublic
                             ).then(added => {
@@ -403,8 +401,9 @@ const start = loginUser => {
                       setInfo(item, currentLoginUser.id, 'isFollower', true)
                     }
                     
-                    item.save().then(respose => {
-                      var follower = getInfo(item, currentLoginUser.id, 'isFollower');
+                    item.save().then(response => {
+                      item = response;
+                      var follower = getInfo(response, currentLoginUser.id, 'isFollower');
                       if (!follower) {
                         createRelationship(item.username, segments, onlyPublic).then(added => {
                           if (added) {
@@ -604,7 +603,7 @@ const setInfo = (user, currentUsername, property, value) => {
 const getInfo = (user, currentUsername, property) => {
   if(user.info && user.info.length>0){
     var found = user.info.find(function(item) {
-      return item.un === currentUsername;
+      return item.un === currentUsername && item[property] !== undefined;
     });
     if (found){
       return found[property];
@@ -642,7 +641,16 @@ const getUsers = (numLimits, username) => {
         {
           "info.un":  { "$ne": username }
         }
-      ]
+      ],
+      "$or": [
+      {
+        "info.un":  { "$eq": username },
+        "info.isFollower":  { "$ne": true}
+      },
+      {
+        "info.un":  { "$ne": username }
+      }
+    ]
     });
     
     if (numLimits && Number.isInteger(numLimits)) {
@@ -822,7 +830,7 @@ const getFollowingNotFollowers = userInfo => {
 
 const isFollower = (username, providerFollowers) => {
   var user = _.find(providerFollowers, {
-    username: parseInt(username)
+    username: username
   });
   return user ? true : false;
 };
@@ -1100,44 +1108,50 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
       }
       _.each(segments, (segment)=>{
         UserBase.findOne({ segment: segment, username: username }, (err,user) => {
+          current = ((count/total) * 100).toFixed(2);
           if (!err) {
             var isNew;
-            var canSave = true;
             if (!user ) {
-              user = new UserBase({
+              user = {
                 segment: segment,
-                username: username
-              });
+                username: username,
+                attempts: [],
+                info: []
+              };
               isNew = true;
             }
             
             if(!isNew && !getInfo(user, currentLoginUser.id, 'isFollower')){
               setInfo(user, currentLoginUser.id, 'isFollower', true);
-            } else {
-              canSave = false
-            }
-            if(canSave) {
-              user.save(function(err) {
+            } 
+            if(isNew) {
+              UserBase.create(user, function(err, user) {
+  
                 if (err) {
                   trace(err, 'error');
                 }
-                trace('Update user: ' + username + ' to segment: ' + segment);
+                trace(current + '% ' + 'Created new' + username + ' (segment: ' + segment + ')');
+              });
+            } else {
+              user.save(function(err, user) {
+                if (err) {
+                  trace(err, 'error');
+                }
+                trace(current + '% ' + 'Update user: ' + username + ' (segment: ' + segment + ')');
               });
             }
 
-
-   
-            
-          }
-  
+          } else {
+            debugger;
+            console.log('err')
+           
+          } 
           count++;
-          if (count === total) {
+          if (count >= total -1) {
             resolveSave(feeds);
           }
         });
       })
-
-
     });
   });
 
