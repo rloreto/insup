@@ -134,7 +134,7 @@ const setUserConfig = (username) => {
           segments: ["weddings"]
         };
       }
-      
+
       
       maxOperationsPerHour = config.maxOperationsPerHour
       maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour
@@ -156,7 +156,7 @@ const setUserConfig = (username) => {
       });
 
       resolve(config);
-      } 
+      
     })
   });
 
