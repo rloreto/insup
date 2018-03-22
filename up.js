@@ -104,8 +104,23 @@ const setUserConfig = (username) => {
   var promise = new Promise(function(resolve, reject) {
     trace("Load configuration of user: " + username);
     User.findOne({ username: username }).then((user) => {
-      if (user) {
-        var config = {
+    var config;
+      if (!user) {
+        config  = {
+          maxOperationsPerHour: 60,
+          maxRemoveOperationsPerHour: 60,
+          startHour: 8,
+          activityHours: 16,
+          maxGetUsers: 1000,
+          onlyPublic: false,
+          maxConsecutiveCreateOperations: 5,
+          maxConsecutiveRemoveOperations: 5,
+          waitBetweenOperationMinutes: 3,
+          loadConfigurationUpdateFrecuencyMinutes: 5,
+          segments: user.segments
+        };
+      } else {
+        config = {
           maxOperationsPerHour: user.maxOperationsPerHour,
           maxRemoveOperationsPerHour: user.maxRemoveOperationsPerHour,
           startHour: user.startHour,
@@ -116,32 +131,31 @@ const setUserConfig = (username) => {
           maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
           waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
           loadConfigurationUpdateFrecuencyMinutes: user.loadConfigurationUpdateFrecuencyMinutes,
-          segments: user.segments
+          segments: ["weddings"]
         };
-     
-        trace(JSON.stringify(config));
-        trace("[OK]");
-        maxOperationsPerHour = config.maxOperationsPerHour || 60;
-        maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour || 60;
-        startHour = config.startHour || 8;
-        activityHours = config.activityHours || 16;
-        maxGetUsers = config.maxGetUsers || 1000;
-        onlyPublic = config.onlyPublic || false;
-        maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations || 5;
-        maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations || 5;
-        waitBetweenOperationMinutes = config.waitBetweenOperationMinutes || 3
-        loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes || 5
-        segments = config.segments || ["weddings"]
-
-        getUserStatus().then((availablePercentByUserSegmets)=>{
-          trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
-        });
-
-        resolve(config);
-      } else {
-        trace("[FAILED]");
-        resolve({})
       }
+      
+      maxOperationsPerHour = config.maxOperationsPerHour
+      maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour
+      startHour = config.startHour 
+      activityHours = config.activityHours 
+      maxGetUsers = config.maxGetUsers 
+      onlyPublic = config.onlyPublic 
+      maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations 
+      maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations 
+      waitBetweenOperationMinutes = config.waitBetweenOperationMinutes 
+      loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes 
+      segments = config.segments 
+      
+      trace(JSON.stringify(config));
+      trace("[OK]");
+
+      getUserStatus().then((availablePercentByUserSegmets)=>{
+        trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
+      });
+
+      resolve(config);
+      } 
     })
   });
 
