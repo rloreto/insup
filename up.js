@@ -117,7 +117,7 @@ const setUserConfig = (username) => {
           maxConsecutiveRemoveOperations: 5,
           waitBetweenOperationMinutes: 3,
           loadConfigurationUpdateFrecuencyMinutes: 5,
-          segments: user.segments
+          segments: ["weddings"]
         };
       } else {
         config = {
