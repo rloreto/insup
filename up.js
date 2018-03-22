@@ -135,6 +135,7 @@ const setUserConfig = (username) => {
         };
       }
       
+      
       maxOperationsPerHour = config.maxOperationsPerHour
       maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour
       startHour = config.startHour 
