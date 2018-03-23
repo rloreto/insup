@@ -489,7 +489,8 @@ const removeNotFollowers = (loginUser, forze) => {
   var promise = new Promise(function(resolve) {
     getUserInfo(loginUser)
       .then(currentUserInfo => {
-        var users = getFollowingNotFollowers(currentUserInfo);
+        //var users = getFollowingNotFollowers(currentUserInfo);
+        var users = currentUserInfo.followings;
         if (users.length === 0) {
           users = currentUserInfo.followings;
         }
