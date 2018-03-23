@@ -286,6 +286,10 @@ const isActivityPeriod = () => {
 }
 
 const start = loginUser => {
+  if (!isActivityPeriod()) {
+    removeNotFollowers(loginUser);
+  }
+
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
@@ -484,6 +488,9 @@ const start = loginUser => {
 };
 
 const removeNotFollowers = (loginUser, forze) => {
+  if (isActivityPeriod() && !forze) {
+    start(loginUser);
+  }
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
