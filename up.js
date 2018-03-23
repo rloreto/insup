@@ -288,6 +288,7 @@ const isActivityPeriod = () => {
 const start = loginUser => {
   if (!isActivityPeriod()) {
     removeNotFollowers(loginUser);
+    return;
   }
 
   currentLoginUser = loginUser;
@@ -490,6 +491,7 @@ const start = loginUser => {
 const removeNotFollowers = (loginUser, forze) => {
   if (isActivityPeriod() && !forze) {
     start(loginUser);
+    return;
   }
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
