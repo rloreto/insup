@@ -533,6 +533,7 @@ const removeNotFollowers = (loginUser, forze) => {
                 isLoading = false;
                 startTime = null;
                 isShow = false;
+                pause = false;
               } else {
                 if (counter < max) {
                   var item = users[internalCounter];
