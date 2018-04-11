@@ -70,7 +70,7 @@ var User = mongoose.model('User', {
   maxConsecutiveCreateOperations: Number,
   maxConsecutiveRemoveOperations: Number,
   waitBetweenOperationMinutes: Number,
-  waitTooManyFollowsErrorMinutes: Number
+  waitTooManyFollowsErrorMinutes: Number,
   loadConfigurationUpdateFrecuencyMinutes: Number,
   segments: []
 });
