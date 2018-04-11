@@ -118,7 +118,7 @@ const setUserConfig = (username) => {
           maxConsecutiveCreateOperations: 5,
           maxConsecutiveRemoveOperations: 5,
           waitBetweenOperationMinutes: 3,
-          waitTooManyFollowsErrorMinutes: 5760
+          waitTooManyFollowsErrorMinutes: 5760,
           loadConfigurationUpdateFrecuencyMinutes: 5,
           segments: ["weddings"]
         };
