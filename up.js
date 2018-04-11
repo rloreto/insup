@@ -10,6 +10,7 @@ var onlyPublic;
 var maxConsecutiveCreateOperations;
 var maxConsecutiveRemoveOperations;
 var waitBetweenOperationMinutes;
+var waitTooManyFollowsErrorMinutes;
 var segments;
 var logger;
 
@@ -69,6 +70,7 @@ var User = mongoose.model('User', {
   maxConsecutiveCreateOperations: Number,
   maxConsecutiveRemoveOperations: Number,
   waitBetweenOperationMinutes: Number,
+  waitTooManyFollowsErrorMinutes: Number
   loadConfigurationUpdateFrecuencyMinutes: Number,
   segments: []
 });
@@ -116,6 +118,7 @@ const setUserConfig = (username) => {
           maxConsecutiveCreateOperations: 5,
           maxConsecutiveRemoveOperations: 5,
           waitBetweenOperationMinutes: 3,
+          waitTooManyFollowsErrorMinutes: 5760
           loadConfigurationUpdateFrecuencyMinutes: 5,
           segments: ["weddings"]
         };
@@ -130,6 +133,7 @@ const setUserConfig = (username) => {
           maxConsecutiveCreateOperations: user.maxConsecutiveCreateOperations,
           maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
           waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
+          waitTooManyFollowsErrorMinutes: user.waitTooManyFollowsErrorMinutes || 5760,
           loadConfigurationUpdateFrecuencyMinutes: user.loadConfigurationUpdateFrecuencyMinutes,
           segments: ["weddings"]
         };
@@ -439,12 +443,19 @@ const start = loginUser => {
                             }
                             isLoading = false;
                           }).catch((e)=>{     
-                            if (e) {
-                              trace(e)
+                            if(e) {
+                              trace(e);
+                              var waitMinutes;
                               trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                                 pause = true;
-                                waitFor(waitBetweenOperationMinutes, function() {
+                                waitMinutes = waitBetweenOperationMinutes;
+                              } else if (e.name === 'TooManyFollowsError') {
+                                pause = true;
+                                waitMinutes = waitTooManyFollowsErrorMinutes;
+                              }
+                              if(waitMinutes) {
+                                waitFor(waitMinutes, function() {
                                   isLoading = false;
                                   pause = false;
                                   isLoading = false;
@@ -561,14 +572,20 @@ const removeNotFollowers = (loginUser, forze) => {
                       
                     }).catch((e)=>{
                       trace(e, 'error')
+                      var waitMinutes;
                       if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                         pause = true;
-                        waitFor(waitBetweenOperationMinutes, function() {
+                        waitMinutes = waitBetweenOperationMinutes;
+                      } else if (e.name === 'TooManyFollowsError') {
+                        waitMinutes = waitTooManyFollowsErrorMinutes;
+                      } else {
+                        isLoading = false;
+                      }
+                      if(waitMinutes) {
+                        waitFor(waitMinutes, function() {
                           pause = false;
                           isLoading = false;
                         });
-                      } else {
-                        isLoading = false;
                       }
                     });
                   } else {
