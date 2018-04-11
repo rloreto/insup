@@ -150,6 +150,7 @@ const setUserConfig = (username) => {
       maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations 
       waitBetweenOperationMinutes = config.waitBetweenOperationMinutes 
       loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes 
+      waitTooManyFollowsErrorMinutes = config.waitTooManyFollowsErrorMinutes
       segments = config.segments 
       
       trace(JSON.stringify(config));
@@ -1219,3 +1220,6 @@ const printPercent = (number, post) => {
 };
 
 module.exports = { login, updateTargetFollowers, start, removeNotFollowers };
+
+
+
