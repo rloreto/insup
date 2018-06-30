@@ -978,7 +978,7 @@ const getUserInfo = (loginUser) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.id + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, false,env === 'prod')];
+        return [data, getFollowers(data.currentUser, data.followerCount, false, /*env === 'prod'*/ false)];
       })
       .spread(function(data, followers) {
         trace('[OK]');
