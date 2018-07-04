@@ -730,7 +730,7 @@ const createRelationship = (username, segments, onlyPublic) => {
                 }
               );
               const error = new Error();
-              error.message ="!user.friendshipStatus.is_private";
+              error.message = "!user.friendshipStatus.is_private";
               reject(error);
             }
           } else {
@@ -748,7 +748,7 @@ const createRelationship = (username, segments, onlyPublic) => {
             })
           }
           const error = new Error();
-          error.message = "user.friendshipStatus.outgoing_request)");
+          error.message = "user.friendshipStatus.outgoing_request";
           reject(error);
         }
       }).catch(e => {
@@ -758,7 +758,7 @@ const createRelationship = (username, segments, onlyPublic) => {
           return getUserFromDb(username);
         } else {
           const error = new Error();
-          error.message = "no relationship");
+          error.message = "no relationship";
           reject(error);
         }
       })
