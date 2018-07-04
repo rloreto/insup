@@ -721,7 +721,7 @@ const createRelationship = (username, segments, onlyPublic) => {
               trace('Creating relationship to ' + username);
               return Client.Relationship.create(currentSession, user.id);
             } else {
-              getUserFromDb(username).then(
+              return getUserFromDb(username).then(
                 user => {
                   if (user) {
                     user.isPrivate = true;
@@ -729,7 +729,7 @@ const createRelationship = (username, segments, onlyPublic) => {
                   user.save();
                 }
               );
-              reject();
+              reject("!user.friendshipStatus.is_private");
             }
           } else {
             trace('Creating relationship to ' + username);
@@ -738,14 +738,14 @@ const createRelationship = (username, segments, onlyPublic) => {
         } else {
           var attempts = getAttempts(username, currentLoginUser.id);
           if (!attempts) {
-            getUserFromDb(username).then((item)=>{
+            return getUserFromDb(username).then((item)=>{
               if (item) {
                 setAttempts(item, currentLoginUser.id, 1);
                 item.save();
               }
             })
           }
-          reject();
+          reject("user.friendshipStatus.outgoing_request)");
         }
       }).catch(e => {
         reject(e);
@@ -753,7 +753,7 @@ const createRelationship = (username, segments, onlyPublic) => {
         if (relationship) {
           return getUserFromDb(username);
         } else {
-          reject();
+          reject("no relationship");
         }
       })
       .then(user => {
