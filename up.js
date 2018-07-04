@@ -652,8 +652,10 @@ const waitFor = (minutes, done) => {
 }
 
 const getUsers = (numLimits, username) => {
+
   var promise = new Promise(function(resolve) {
-  var query = UserBase.find({
+
+    var filter = {
       "attempts.un":  { "$ne": username },
       "$or": [{
           "info.un":  { "$eq": username },
@@ -672,8 +674,23 @@ const getUsers = (numLimits, username) => {
         "info.un":  { "$ne": username }
       }
     ]
-    });
-    
+    };
+
+
+    if(segments && segments.length>0){
+      _.forEach(segments, (segment) => {
+        filter["$and"] = [];
+       
+        var segmentsIntenal = {"$or": []}
+        segmentsIntenal["$or"].push({
+          segment: segment
+        })
+        filter["$and"].push(segmentsIntenal);
+      });
+    }
+
+    var query = UserBase.find(filter);
+
     if (numLimits && Number.isInteger(numLimits)) {
       query = query.limit(numLimits);
     }
