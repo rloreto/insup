@@ -131,7 +131,7 @@ const setUserConfig = (username) => {
           maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
           waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
           loadConfigurationUpdateFrecuencyMinutes: user.loadConfigurationUpdateFrecuencyMinutes,
-          segments: ["weddings"]
+          segments: user.segments
         };
       }
 
@@ -1016,7 +1016,7 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
           fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
           resolve(feedsDone);
         } else {
-          //printPercent(parseInt(counter / followerCount * 100));
+          printPercent(counter / followerCount * 100.0);
           if (getMore) {
             getMore = false;
             accountFollowers.get().then(function(results) {
@@ -1157,14 +1157,14 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
                 if (err) {
                   trace(err, 'error');
                 }
-                trace(current + '% ' + 'Created new' + username + ' (segment: ' + segment + ')');
+                //trace(current + '% ' + 'Created new' + username + ' (segment: ' + segment + ')');
               });
             } else {
               user.save(function(err, user) {
                 if (err) {
                   trace(err, 'error');
                 }
-                trace(current + '% ' + 'Update user: ' + username + ' (segment: ' + segment + ')');
+                //trace(current + '% ' + 'Update user: ' + username + ' (segment: ' + segment + ')');
               });
             }
 

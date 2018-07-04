@@ -126,6 +126,7 @@ if (program.update && !program.remove) {
   })
   if (username && pwd) {
     login(username, pwd).then(()=>{
+      debugger;
       updateTargetFollowers(
         { id: username, password: pwd, targetUserName, force, segment  },
         program.args[0],
