@@ -12,11 +12,16 @@ var maxConsecutiveRemoveOperations;
 var waitBetweenOperationMinutes;
 var segments;
 var logger;
+var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSbXmZEH_J34v';
 
 Date.prototype.addHours = function(h){
   this.setHours(this.getHours()+h);
   return this;
 }
+
+var XLSX = require('xlsx');
+require('isomorphic-fetch'); // or another library of choice.
+var Dropbox = require('dropbox').Dropbox;
 
 var fastCsv = require('fast-csv');
 var util = require('util');
@@ -496,16 +501,21 @@ const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.id);
   var promise = new Promise(function(resolve) {
-    getUserInfo(loginUser)
-      .then(currentUserInfo => {
+    updateKeyUsers(loginUser.id).then((object)=> {
+      return getUserInfo(loginUser);
+    })
+    .catch((ex) => {
+      return getUserInfo(loginUser);
+    })
+    .then(currentUserInfo => {
         //var users = getFollowingNotFollowers(currentUserInfo);
         var users = currentUserInfo.followings;
         if (users.length === 0) {
           users = currentUserInfo.followings;
         }
         return users;
-      })
-      .then(users => {
+    })
+    .then(users => {
         users = users.reverse();
         var max = maxRemoveOperationsPerHour;
         var counter = 0;
@@ -601,7 +611,7 @@ const removeNotFollowers = (loginUser, forze) => {
         }
         loop();
         var loopPointer = setInterval(loop, 1000);
-      });
+    });
   });
 
   return promise;
@@ -812,7 +822,7 @@ const createRelationship = (username, segments, onlyPublic) => {
 
 const destroyRelationship = username => {
   var promise = new Promise(function(resolve, reject) {
-    debugger;
+   
     KeyUser.findOne({ username: username, userId: currentLoginUser.id }).then((user) => {
       if(user) {
         const error = new Error();
@@ -1208,7 +1218,7 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
             }
 
           } else {
-            debugger;
+      
             console.log('err')
            
           } 
@@ -1247,63 +1257,88 @@ const printPercent = (number, post) => {
 };
 
 
-const updateKeyUsers = (cvsFile, targetUsername) => {
+const updateKeyUsers = (targetUsername) => {
+  console.log('Update key user from dropbox to: ' + targetUsername );
   let counter = 0;
-
   var promise = new Promise(function(resolve, reject) {
-
-    var fileStream = fs.createReadStream(cvsFile),
-    parser = fastCsv();
-
-
-    fileStream
-    .on("readable", function () {
-        var data;
-        while ((data = fileStream.read()) !== null) {
-            parser.write(data);
-        }
-    })
-    .on("end", function () {
-        parser.end();
-    });
-    var isRunning;
-    var list = [];
-    parser.on("readable", function () {
-      var data;
-      while ((data = parser.read()) !== null) {
-          if(data && data.length>0) {
-            list.push(data[0]);
-          }
-      }
-    })
-    .on("end", function () {
-        list.forEach((item) =>{
-          KeyUser.findOne({ username: item, userId: targetUsername }).then((user) => {
-            if(!user) {
-              KeyUser.create({ username: item, userId: targetUsername }).then((user) => {
-                counter++;
-                if(counter >= list.length) {
-                  resolve();
-                }
-              }).catch((err)=> {
-                console.log(err);
-                counter++;
-                if(counter >= list.length) {
-                  resolve();
-                }
-              });
-            } else {
-              console.log(item);
+    readExcel(targetUsername).then((usernames) => {
+      usernames.forEach((username) => {
+ 
+        var item = username["Instagram Usernames"];
+        KeyUser.findOne({ username: item, userId: targetUsername }).then((user) => {
+          if(!user) {
+            KeyUser.create({ username: item, userId: targetUsername }).then((user) => {
               counter++;
-              if(counter >= list.length) {
+              if(counter >= usernames.length) {
                 resolve();
+                console.log(counter + ' users procesed!');
               }
+            }).catch((err)=> {
+              console.log(err);
+              counter++;
+              if(counter >= usernames.length) {
+                resolve();
+                console.log(counter + ' users procesed!');
+              }
+            });
+          } else {
+            counter++;
+            if(counter >= usernames.length) {
+              resolve();
+              console.log(counter + ' users procesed!');
             }
-          });
-        })
+          }
+        });
+      })
     });
   });
-  
+  return promise;
+};
+
+const readExcel = (username) => {
+
+  var promise = new Promise(function(resolve, reject) {
+    var dbx = new Dropbox({ accessToken: dropboxAccessToken });
+    dbx.filesListFolder({ path: '' })
+      .then(function (response) {
+        var promises = [];
+        if(response.entries) {
+          var promise;
+          response.entries.forEach((item) =>{
+            if(item.path_lower.indexOf(username)>0) {
+              promise = dbx.filesDownload({ path: item.path_lower });
+              return;
+            } 
+          })
+          if(promise){
+            return promise;
+          } else {
+            reject();
+          }
+        } else {
+          reject();
+        }
+      })
+      .catch(function (err) {
+        console.log(err);
+      })
+      .then((data)=> {
+        if(!data) {
+          reject();
+        } else {
+          var workbook = XLSX.read(data.fileBinary, {type:'buffer'});
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); 
+          /*fs.writeFile(data.name, data.fileBinary, 'binary', function (err) {
+            if (err) { throw err; }
+            console.log('File: ' + data.name + ' saved.');
+          });*/
+          resolve(json);
+        }
+      })
+      .catch((err)=>{
+        debugger;
+      });
+  });
   return promise;
 };
 

@@ -6,9 +6,13 @@
     "commander-plus": "0.0.6",
     "console-stamp": "0.2.6",
     "dotenv": "4.0.0",
+    "dropbox": "^4.0.7",
+    "dropbox-fs": "^0.3.0",
     "each-async": "1.1.1",
+    "exceljs": "^1.5.1",
     "fast-csv": "^2.4.1",
     "instagram-private-api": "0.6.8",
+    "isomorphic-fetch": "^2.2.1",
     "moment": "^2.22.2",
     "mongoose": "4.12.3",
     "node-cache": "4.1.1",
@@ -17,7 +21,8 @@
     "project-oxford": "1.8.0",
     "public-instagram": "0.6.1",
     "request": "^2.87.0",
-    "sleep-ms": "2.0.1"
+    "sleep-ms": "2.0.1",
+    "xlsx": "^0.13.1"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
