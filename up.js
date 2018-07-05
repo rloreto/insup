@@ -1263,33 +1263,39 @@ const updateKeyUsers = (targetUsername) => {
   var promise = new Promise(function(resolve, reject) {
     readExcel(targetUsername).then((usernames) => {
       usernames.forEach((username) => {
- 
         var item = username["Instagram Usernames"];
         KeyUser.findOne({ username: item, userId: targetUsername }).then((user) => {
           if(!user) {
             KeyUser.create({ username: item, userId: targetUsername }).then((user) => {
               counter++;
               if(counter >= usernames.length) {
-                resolve();
                 console.log(counter + ' users procesed!');
+                console.log('[Ok]');
+                resolve();
               }
             }).catch((err)=> {
               console.log(err);
               counter++;
               if(counter >= usernames.length) {
-                resolve();
                 console.log(counter + ' users procesed!');
+                console.log('[Ok]');
+                resolve();
               }
             });
           } else {
             counter++;
             if(counter >= usernames.length) {
-              resolve();
               console.log(counter + ' users procesed!');
+              console.log('[Ok]');
+              resolve();
             }
           }
         });
-      })
+      });
+    }).catch((err)=>{
+      console.log(err.message);
+      console.log('[Failed]');
+      reject(err);
     });
   });
   return promise;
@@ -1298,9 +1304,11 @@ const updateKeyUsers = (targetUsername) => {
 const readExcel = (username) => {
 
   var promise = new Promise(function(resolve, reject) {
+    const error = new Error();
     var dbx = new Dropbox({ accessToken: dropboxAccessToken });
     dbx.filesListFolder({ path: '' })
       .then(function (response) {
+        debugger;
         var promises = [];
         if(response.entries) {
           var promise;
@@ -1313,14 +1321,16 @@ const readExcel = (username) => {
           if(promise){
             return promise;
           } else {
-            reject();
+            error.message = "Dropbox file not found";
+            reject(error);
           }
         } else {
-          reject();
+          error.message = "Dropbox file not found";
+          reject(error);
         }
       })
       .catch(function (err) {
-        console.log(err);
+        reject(err);
       })
       .then((data)=> {
         if(!data) {

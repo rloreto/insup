@@ -129,6 +129,7 @@ if (program.remove && !program.update) {
         console.log("done");
         process.exit();
       }).catch((e)=>{
+        debugger;
         logger.error(e);
       });
     });
