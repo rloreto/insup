@@ -7,20 +7,21 @@
     "console-stamp": "0.2.6",
     "dotenv": "4.0.0",
     "each-async": "1.1.1",
+    "fast-csv": "^2.4.1",
     "instagram-private-api": "0.6.8",
-    "moment": "2.19.1",
+    "moment": "^2.22.2",
     "mongoose": "4.12.3",
     "node-cache": "4.1.1",
     "node-serialize": "0.0.4",
     "process": "0.11.10",
     "project-oxford": "1.8.0",
     "public-instagram": "0.6.1",
-    "request": "2.83.0",
+    "request": "^2.87.0",
     "sleep-ms": "2.0.1"
   },
   "devDependencies": {
     "babel-cli": "6.26.0",
-    "babel-core": "6.26.0",
-    "babel-preset-env": "1.6.1"
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0"
   }
 }

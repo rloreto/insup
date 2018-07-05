@@ -18,7 +18,7 @@ Date.prototype.addHours = function(h){
   return this;
 }
 
-
+var fastCsv = require('fast-csv');
 var util = require('util');
 
 const fs = require('fs');
@@ -71,6 +71,11 @@ var User = mongoose.model('User', {
   waitBetweenOperationMinutes: Number,
   loadConfigurationUpdateFrecuencyMinutes: Number,
   segments: []
+});
+
+var KeyUser = mongoose.model('KeyUser', {
+  userId: String,
+  username: String
 });
 
 var progressCounter = 0;
@@ -560,7 +565,12 @@ const removeNotFollowers = (loginUser, forze) => {
                       isLoading = false;
                       
                     }).catch((e)=>{
-                      trace(e, 'error')
+                      if(e && e.code && e.code == 101) {
+                        trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.')
+                      } else {
+                        trace(e, 'error');
+                      }
+                      
                       if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                         pause = true;
                         waitFor(waitBetweenOperationMinutes, function() {
@@ -802,35 +812,47 @@ const createRelationship = (username, segments, onlyPublic) => {
 
 const destroyRelationship = username => {
   var promise = new Promise(function(resolve, reject) {
-    getUserId(currentLoginUser, username)
-      .then(response => {
-        var user;
-        if (!response.hasError) {
-          user = response.data;
-        }
-        if (user && !user.friendshipStatus.outgoing_request) {
-          trace('Destroy relationship with ' + username);
-          return Client.Relationship.destroy(currentSession, user.id);
-        } else {
-          resolve();
-        }
-      })
-      .catch(e => {
-        reject(e);
-      })
-      .then(relationship => {
-        trace('[OK]');
-        if (relationship) {
-          return getUserFromDb(username);
-        } else {
-          resolve();
-        }
-      })
-      .then(user => {
-        resolve(user);
-      });
+    debugger;
+    KeyUser.findOne({ username: username, userId: currentLoginUser.id }).then((user) => {
+      if(user) {
+        const error = new Error();
+        error.code = 101; 
+        error.message = 'The user is in the keyuser list';
+        reject(error);
+      } else {
+        return getUserId(currentLoginUser, username);
+      }
+    })
+    .catch(e => {
+      reject(e);
+    })
+    .then(response => {
+      var user;
+      if (!response.hasError) {
+        user = response.data;
+      }
+      if (user && !user.friendshipStatus.outgoing_request) {
+        trace('Destroy relationship with ' + username);
+        return Client.Relationship.destroy(currentSession, user.id);
+      } else {
+        resolve();
+      }
+    })
+    .catch(e => {
+      reject(e);
+    })
+    .then(relationship => {
+      trace('[OK]');
+      if (relationship) {
+        return getUserFromDb(username);
+      } else {
+        resolve();
+      }
+    })
+    .then(user => {
+      resolve(user);
+    });
   });
-
   return promise;
 };
 
@@ -1224,4 +1246,65 @@ const printPercent = (number, post) => {
   trace(number + '% ' + post);
 };
 
-module.exports = { login, updateTargetFollowers, start, removeNotFollowers };
+
+const updateKeyUsers = (cvsFile, targetUsername) => {
+  let counter = 0;
+
+  var promise = new Promise(function(resolve, reject) {
+
+    var fileStream = fs.createReadStream(cvsFile),
+    parser = fastCsv();
+
+
+    fileStream
+    .on("readable", function () {
+        var data;
+        while ((data = fileStream.read()) !== null) {
+            parser.write(data);
+        }
+    })
+    .on("end", function () {
+        parser.end();
+    });
+    var isRunning;
+    var list = [];
+    parser.on("readable", function () {
+      var data;
+      while ((data = parser.read()) !== null) {
+          if(data && data.length>0) {
+            list.push(data[0]);
+          }
+      }
+    })
+    .on("end", function () {
+        list.forEach((item) =>{
+          KeyUser.findOne({ username: item, userId: targetUsername }).then((user) => {
+            if(!user) {
+              KeyUser.create({ username: item, userId: targetUsername }).then((user) => {
+                counter++;
+                if(counter >= list.length) {
+                  resolve();
+                }
+              }).catch((err)=> {
+                console.log(err);
+                counter++;
+                if(counter >= list.length) {
+                  resolve();
+                }
+              });
+            } else {
+              console.log(item);
+              counter++;
+              if(counter >= list.length) {
+                resolve();
+              }
+            }
+          });
+        })
+    });
+  });
+  
+  return promise;
+};
+
+module.exports = { login, updateTargetFollowers, start, removeNotFollowers, updateKeyUsers };
