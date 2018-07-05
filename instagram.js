@@ -67,7 +67,7 @@ program
   .option('-u, --update', 'Update target followers')
   .option('-s, --start', 'Update target followers')
   .option('-r, --remove', 'Remove not followers')
-  .option('-k, --updateKeyUsers <csv> <targetUserName>', 'Update key users')
+  .option('-k, --updateKeyUsers <targetUserName>', 'Update key users')
   .parse(process.argv);
 
 
@@ -94,24 +94,19 @@ if (
 
 if (program.updateKeyUsers && !program.remove && !program.update) {
 
-  if(program.rawArgs.length <5) {
+  if(program.rawArgs.length <4) {
     throw "The csv file and targetUserName parameters are requited.";
   }
-  var targetUsername = program.rawArgs[4];
-  var csv = program.rawArgs[3];
+  var targetUsername = program.rawArgs[3];
 
 
-  if(!csv) {
-    throw "The csv file is requidred";
-    process.exit();
-  }
 
   if(!targetUsername) {
     throw "The targetUserName is requidred";
     process.exit();
   }
 
-  updateKeyUsers(csv, targetUsername).then(function() {
+  updateKeyUsers(targetUsername).then(function() {
     process.exit();
   }).catch((e)=>{
     logger.error(e);

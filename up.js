@@ -22,8 +22,6 @@ Date.prototype.addHours = function(h){
 var XLSX = require('xlsx');
 require('isomorphic-fetch'); // or another library of choice.
 var Dropbox = require('dropbox').Dropbox;
-
-var fastCsv = require('fast-csv');
 var util = require('util');
 
 const fs = require('fs');
