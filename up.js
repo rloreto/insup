@@ -224,7 +224,7 @@ const setDevice = (username) => {
 }
 
 const updateTargetFollowers = (obj) => {
-  var loginUser= { username: obj.id, password: obj.password }
+  var loginUser= { username: obj.username, password: obj.password }
   var targetUsername = obj.targetUserName;
   var force= obj.force;
   var currentSegment = obj.segment;
