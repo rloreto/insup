@@ -440,6 +440,7 @@ const start = loginUser => {
                                 addUserRequest(loginUser.username, item.username)
                                   .then(()=>{
                                     //console.log();
+                                    return null;
                                   })
                                   .catch((ex)=>{
                                   //TODO: Hande exception.
@@ -457,6 +458,7 @@ const start = loginUser => {
                                 trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               }
                               isLoading = false;
+                              return null;
                             })
                             .catch((e)=>{     
                             if (e) {
