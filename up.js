@@ -434,23 +434,28 @@ const start = loginUser => {
                         item = response;
                         var follower = getInfo(response, currentLoginUser.username, 'isFollower');
                         if (!follower) {
-                          createRelationship(item.username, segments, onlyPublic).then(added => {
-                            if (added) {
-                              addUserRequest(loginUser.username, item.username)
-                              trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                              counter++;
-                              if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
-                                pause = true;
-                                waitFor(waitBetweenOperationMinutes, function() {
-                                  isLoading = false;
-                                  pause = false;
-                                });
+                          createRelationship(item.username, segments, onlyPublic)
+                            .then(added => {
+                              if (added) {
+                                addUserRequest(loginUser.username, item.username)
+                                  .catch((ex)=>{
+                                  //TODO: Hande exception.
+                                  });
+                                trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                                counter++;
+                                if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
+                                  pause = true;
+                                  waitFor(waitBetweenOperationMinutes, function() {
+                                    isLoading = false;
+                                    pause = false;
+                                  });
+                                }
+                              } else {
+                                trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               }
-                            } else {
-                              trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                            }
-                            isLoading = false;
-                          }).catch((e)=>{     
+                              isLoading = false;
+                            })
+                            .catch((e)=>{     
                             if (e) {
                               trace(e)
                               trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
