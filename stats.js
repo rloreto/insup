@@ -36,12 +36,6 @@ const addUserRequest = (username, targetUsername) => {
           targetUsername: targetUsername, 
           created: new Date(), 
           state: 'Pending'
-      }, function(err,items) {
-          if (!err) {
-              resolve();
-          } else {
-            reject(err);
-          }
       });
 };
 
