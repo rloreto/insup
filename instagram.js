@@ -80,7 +80,7 @@ if (
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
   if (username && pwd) {
     login(username, pwd).then(()=>{
-      start({ id: username, password: pwd }).then(function() {
+      start({ username: username, password: pwd }).then(function() {
         process.exit();
       }).catch((e)=>{
         logger.error(e);
@@ -120,7 +120,7 @@ if (program.remove && !program.update) {
 
   if (username && pwd) {
     login(username, pwd).then(()=>{
-      removeNotFollowers({ id: username, password: pwd }, true).then(function() {
+      removeNotFollowers({ username: username, password: pwd }, true).then(function() {
         console.log("done");
         process.exit();
       }).catch((e)=>{
@@ -157,7 +157,7 @@ if (program.update && !program.remove) {
     login(username, pwd).then(()=>{
       debugger;
       updateTargetFollowers(
-        { id: username, password: pwd, targetUserName, force, segment  },
+        { username: username, password: pwd, targetUserName, force, segment  },
         program.args[0],
         force
       ).then(function() {

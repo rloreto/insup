@@ -13,6 +13,7 @@ var waitBetweenOperationMinutes;
 var segments;
 var logger;
 var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSbXmZEH_J34v';
+const { addUserRequest } = require('./stats');
 
 Date.prototype.addHours = function(h){
   this.setHours(this.getHours()+h);
@@ -27,7 +28,6 @@ var util = require('util');
 const fs = require('fs');
 require('dotenv').load();
 
-var mongoose = require('mongoose');
 var _ = require('lodash');
 var Promise = require('bluebird');
 const eachAsync = require('each-async');
@@ -36,6 +36,9 @@ const { getFaceInfo } = require('./face');
 if (!fs.existsSync('./tmp/')) {
   fs.mkdirSync('./tmp/');
 }
+
+var Mongoose = require('mongoose').Mongoose;
+var mongoose = new Mongoose();
 
 var user_mongo = process.env.USER_MONGO;
 var pwd_mongo = process.env.PWD_MONGO;
@@ -89,7 +92,7 @@ const trace = (str, type) => {
   type = type || 'log';
   switch(type){
     case 'log':
-      logger.log('[' + currentLoginUser.id + '] ' +str);
+      logger.log('[' + currentLoginUser.username + '] ' +str);
       console.log(str);
     break;
     case 'error':
@@ -173,7 +176,7 @@ const setUserConfig = (username) => {
 
 const login = (userId, password) => {
   currentLoginUser = {
-    id: userId,
+    username: userId,
     password: password
   };
 
@@ -221,12 +224,12 @@ const setDevice = (username) => {
 }
 
 const updateTargetFollowers = (obj) => {
-  var loginUser= { id: obj.id, password: obj.password }
+  var loginUser= { username: obj.id, password: obj.password }
   var targetUsername = obj.targetUserName;
   var force= obj.force;
   var currentSegment = obj.segment;
   currentLoginUser = loginUser;
-  setDevice(currentLoginUser.id);
+  setDevice(currentLoginUser.username);
   var currentSession;
   var followers;
   var promise = new Promise(function(resolve) {
@@ -250,7 +253,7 @@ const updateTargetFollowers = (obj) => {
         Client.Session.create(
           device,
           storage,
-          loginUser.id,
+          loginUser.username,
           loginUser.password
         ).then(function(session) {
           trace('Procesing...');
@@ -268,7 +271,7 @@ const updateTargetFollowers = (obj) => {
         });
       } else {
         var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        saveUpdateFollowers(1, feeds, user.id, currentLoginUser.id, currentSegment).then(function(followers) {
+        saveUpdateFollowers(1, feeds, user.id, currentLoginUser.username, currentSegment).then(function(followers) {
           resolve();
         });
       }
@@ -298,7 +301,7 @@ const start = loginUser => {
     return removeNotFollowers(loginUser);
   } else {
     currentLoginUser = loginUser;
-    setDevice(currentLoginUser.id);
+    setDevice(currentLoginUser.username);
     var promise = new Promise(function(resolve) {
       getUserInfo(loginUser).then(currentUserInfo => {
         var data = {
@@ -311,7 +314,7 @@ const start = loginUser => {
         var internalCounter = 0;
         var targetUsers = [];
 
-        getUsers(maxGetUsers, loginUser.id).then(users => {
+        getUsers(maxGetUsers, loginUser.username).then(users => {
           targetUsers = users;
           internalCounter = 0;
         });
@@ -331,7 +334,7 @@ const start = loginUser => {
             removeNotFollowers(loginUser);
           } else {
             if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
-              setUserConfig(loginUser.id);
+              setUserConfig(loginUser.username);
             }
 
             if (!pause && !isLoading && targetUsers && targetUsers.length > 0) {
@@ -339,7 +342,7 @@ const start = loginUser => {
               if (internalCounter + 1 > targetUsers.length) {
                 internalCounter = 0;
                 targetUsers = [];
-                getUsers(maxGetUsers, loginUser.id).then(users => {
+                getUsers(maxGetUsers, loginUser.username).then(users => {
                   targetUsers = users;
                   isLoading = false;
                 });
@@ -378,11 +381,11 @@ const start = loginUser => {
                           );
 
                           if(follower) {
-                            setInfo(item, currentLoginUser.id, 'isFollower', true)
+                            setInfo(item, currentLoginUser.username, 'isFollower', true)
                           }
 
                           item.save().then(resporesponsese => {
-                            var follower = getInfo(respose, currentLoginUser.id, 'isFollower');
+                            var follower = getInfo(respose, currentLoginUser.username, 'isFollower');
                             if (!follower) {
                               createRelationship(
                                 respose.username,
@@ -424,15 +427,16 @@ const start = loginUser => {
                       );
 
                       if(follower) {
-                        setInfo(item, currentLoginUser.id, 'isFollower', true)
+                        setInfo(item, currentLoginUser.username, 'isFollower', true)
                       }
                       
                       item.save().then(response => {
                         item = response;
-                        var follower = getInfo(response, currentLoginUser.id, 'isFollower');
+                        var follower = getInfo(response, currentLoginUser.username, 'isFollower');
                         if (!follower) {
                           createRelationship(item.username, segments, onlyPublic).then(added => {
                             if (added) {
+                              addUserRequest(loginUser.username, item.username)
                               trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               counter++;
                               if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
@@ -497,9 +501,9 @@ const start = loginUser => {
 
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
-  setDevice(currentLoginUser.id);
+  setDevice(currentLoginUser.username);
   var promise = new Promise(function(resolve) {
-    updateKeyUsers(loginUser.id).then((object)=> {
+    updateKeyUsers(loginUser.username).then((object)=> {
       return getUserInfo(loginUser);
     })
     .catch((ex) => {
@@ -536,7 +540,7 @@ const removeNotFollowers = (loginUser, forze) => {
             start(loginUser);
           } else {
             if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
-              setUserConfig(loginUser.id);
+              setUserConfig(loginUser.username);
             }
 
             if(!pause && !isLoading){
@@ -559,7 +563,7 @@ const removeNotFollowers = (loginUser, forze) => {
                   if (item) {
                     destroyRelationship(item.username).then(user => {
                       if (user) {
-                        setUnfollowed(user.username, currentLoginUser.id, segments);
+                        setUnfollowed(user.username, currentLoginUser.username, segments);
                       }
                       counter++;
                       trace('Destroying relationship ' + counter + ' of ' + max);
@@ -773,11 +777,11 @@ const createRelationship = (username, segments, onlyPublic) => {
             return Client.Relationship.create(currentSession, user.id);
           }
         } else {
-          var attempts = getAttempts(username, currentLoginUser.id);
+          var attempts = getAttempts(username, currentLoginUser.username);
           if (!attempts) {
             return getUserFromDb(username).then((item)=>{
               if (item) {
-                setAttempts(item, currentLoginUser.id, 1);
+                setAttempts(item, currentLoginUser.username, 1);
                 item.save();
               }
             })
@@ -801,7 +805,7 @@ const createRelationship = (username, segments, onlyPublic) => {
         if (user) {
           var attempts = getAttempts(user, username);
           attempts++;
-          setAttempts(user, currentLoginUser.id, attempts++);
+          setAttempts(user, currentLoginUser.username, attempts++);
           user.save((err, response) => {
             if(!err){
               trace('[OK]');
@@ -821,7 +825,7 @@ const createRelationship = (username, segments, onlyPublic) => {
 const destroyRelationship = username => {
   var promise = new Promise(function(resolve, reject) {
    
-    KeyUser.findOne({ username: username, userId: currentLoginUser.id }).then((user) => {
+    KeyUser.findOne({ username: username, userId: currentLoginUser.username }).then((user) => {
       if(user) {
         const error = new Error();
         error.code = 101; 
@@ -948,7 +952,7 @@ const setUnfollowed = (username, unfollowBy, segments) => {
 
 const getUserId = (loginUser, username) => {
   var promise = new Promise(function(resolve) {
-    Client.Session.create(device, storage, loginUser.id, loginUser.password)
+    Client.Session.create(device, storage, loginUser.username, loginUser.password)
       .then(function(session) {
         var data = {
           currentSession: session
@@ -1010,12 +1014,12 @@ const getUserInfoByUserName = (loginUser, username) => {
 
 const getUserInfo = (loginUser) => {
   var promise = new Promise(function(resolve) {
-    Client.Session.create(device, storage, loginUser.id, loginUser.password)
+    Client.Session.create(device, storage, loginUser.username, loginUser.password)
       .then(function(session) {
         var data = {
           currentSession: session
         };
-        return [data, Client.Account.searchForUser(session, loginUser.id)];
+        return [data, Client.Account.searchForUser(session, loginUser.username)];
       })
       .spread(function(data, user) {
         data.followerCount = user._params.followerCount;
@@ -1024,13 +1028,13 @@ const getUserInfo = (loginUser) => {
           name: user._params.username,
           currentSession: data.currentSession
         };
-        trace('Getting ' + loginUser.id + ' followings');
+        trace('Getting ' + loginUser.username + ' followings');
         return [data, getFollowing(data.currentUser)];
       })
       .spread(function(data, followings) {
         trace('[OK]');
         data.followings = followings;
-        trace('Getting ' + loginUser.id + ' followers');
+        trace('Getting ' + loginUser.username + ' followers');
         return [data, getFollowers(data.currentUser, data.followerCount, false, /*env === 'prod'*/ false)];
       })
       .spread(function(data, followers) {
@@ -1137,7 +1141,7 @@ const getUserStatus =  function() {
         "$or": [
             {
                 "attempts.un": {
-                    "$eq": currentLoginUser.id
+                    "$eq": currentLoginUser.username
                 },
                 "attempts.n": {
                     "$lt": 1
@@ -1145,12 +1149,12 @@ const getUserStatus =  function() {
             },
             {
                 "attempts.un": {
-                    "$ne": currentLoginUser.id
+                    "$ne": currentLoginUser.username
                 }
             },
             {
                 "info.un": {
-                    "$eq": currentLoginUser.id
+                    "$eq": currentLoginUser.username
                 },
                 "info.unfollowed": {
                     "$ne": true
@@ -1195,8 +1199,8 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
               isNew = true;
             }
             
-            if(!isNew && !getInfo(user, currentLoginUser.id, 'isFollower')){
-              setInfo(user, currentLoginUser.id, 'isFollower', true);
+            if(!isNew && !getInfo(user, currentLoginUser.username, 'isFollower')){
+              setInfo(user, currentLoginUser.username, 'isFollower', true);
             } 
             if(isNew) {
               UserBase.create(user, function(err, user) {
