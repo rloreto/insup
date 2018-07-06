@@ -31,8 +31,6 @@ var UserRequest = mongoose.model('UserRequest', {
 });
 
 const addUserRequest = (username, targetUsername) => {
-  return new Promise(function(resolve, reject) {
-
     UserRequest.create({ 
           username: username, 
           targetUsername: targetUsername, 
@@ -45,7 +43,6 @@ const addUserRequest = (username, targetUsername) => {
             reject(err);
           }
       });
-  });
 };
 
 module.exports = { addUserRequest };
