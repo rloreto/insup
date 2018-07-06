@@ -437,7 +437,13 @@ const start = loginUser => {
                           createRelationship(item.username, segments, onlyPublic)
                             .then(added => {
                               if (added) {
-                                addUserRequest(loginUser.username, item.username);
+                                addUserRequest(loginUser.username, item.username)
+                                  .then(()=>{
+                                    //console.log();
+                                  })
+                                  .catch((ex)=>{
+                                  //TODO: Hande exception.
+                                  });
                                 trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                                 counter++;
                                 if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {

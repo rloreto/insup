@@ -31,12 +31,21 @@ var UserRequest = mongoose.model('UserRequest', {
 });
 
 const addUserRequest = (username, targetUsername) => {
+  return new Promise(function(resolve, reject) {
+
     UserRequest.create({ 
           username: username, 
           targetUsername: targetUsername, 
           created: new Date(), 
           state: 'Pending'
+      }, function(err,items) {
+          if (!err) {
+              resolve();
+          } else {
+            reject(err);
+          }
       });
+  });
 };
 
 module.exports = { addUserRequest };
