@@ -12,8 +12,9 @@ var maxConsecutiveRemoveOperations;
 var waitBetweenOperationMinutes;
 var segments;
 var logger;
+var userInfo;
 var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSbXmZEH_J34v';
-const { addUserRequest } = require('./stats');
+const { addUserRequest, updateUserRequest, prepareReport } = require('./stats');
 
 Date.prototype.addHours = function(h){
   this.setHours(this.getHours()+h);
@@ -307,6 +308,7 @@ const start = loginUser => {
         var data = {
           currentUserInfo: currentUserInfo
         };
+        userInfo = data;
         var max = maxOperationsPerHour;
         var counter = 0;
         var iteration = 0;
@@ -346,6 +348,7 @@ const start = loginUser => {
                   targetUsers = users;
                   isLoading = false;
                 });
+                
               } else {
                 if(!startTime){
                   startTime = new Date();
@@ -366,7 +369,7 @@ const start = loginUser => {
                     item.isFaceEval = true;
 
                     if (item && !item.isFaceEval) {
-                      getFaceInfo(item.pictureUrl.replace('s150x150', '')).then(
+                      /*getFaceInfo(item.pictureUrl.replace('s150x150', '')).then(
                         faceInfo => {
                           if (faceInfo) {
                             item.gender = faceInfo.gender;
@@ -420,6 +423,7 @@ const start = loginUser => {
                           });
                         }
                       );
+                      */
                     } else if (item && item.isFaceEval) {
                       var follower = isFollower(
                         item.username,
@@ -491,8 +495,26 @@ const start = loginUser => {
                   } else {
                     isLoading = false;
                     if(!isShow){
-                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
                       isShow = true;
+                      getUserInfo(loginUser).then(function(userInfo) {
+                        if(userInfo && userInfo.followings ) {
+                          updateUserRequest(userInfo.followings).then(()=>{
+                            console.log('Update user request completed.');
+                            return prepareReport(loginUser.username);
+                          })
+                          .catch((ex)=>{
+                          //TODO: Hande exception.
+                          })
+                          .then((dta)=>{
+                            console.log('Report user request data generated.');
+                          })
+                          .catch((ex)=>{
+                            //TODO: Hande exception.
+                          });
+                        }
+                      });
+                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                      
                     }
                   }
                 }
@@ -1022,7 +1044,7 @@ const getUserInfoByUserName = (loginUser, username) => {
 };
 
 
-const getUserInfo = (loginUser) => {
+const getUserInfo = (loginUser, forceGetAllFollowers) => {
   var promise = new Promise(function(resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
       .then(function(session) {
@@ -1045,7 +1067,7 @@ const getUserInfo = (loginUser) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, false, /*env === 'prod'*/ false)];
+        return [data, getFollowers(data.currentUser, data.followerCount, false, forceGetAllFollowers)];
       })
       .spread(function(data, followers) {
         trace('[OK]');
@@ -1320,7 +1342,6 @@ const readExcel = (username) => {
     var dbx = new Dropbox({ accessToken: dropboxAccessToken });
     dbx.filesListFolder({ path: '' })
       .then(function (response) {
-        debugger;
         var promises = [];
         if(response.entries) {
           var promise;
