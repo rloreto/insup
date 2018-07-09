@@ -37,6 +37,7 @@ var userSchema = new mongoose.Schema({
 
 var daySchema = new mongoose.Schema({
   date: Date,
+  username: String,
   success: [userSchema],
   timeout: [userSchema],
   cancel: [userSchema],
@@ -46,8 +47,9 @@ var daySchema = new mongoose.Schema({
 });
 
 var UserRequestReport = mongoose.model('UserRequestReport', {
-  days: [daySchema],
-  date: Date
+  username: String,
+  date: Date,
+  days: [daySchema]
 });
 
 var addUserRequest = (username, targetUsername) => {
@@ -131,7 +133,7 @@ var updateUserRequest = followings => {
   return new Promise(promiseFn);
 };
 
-var prepareReportByMonth = (month, year) => {
+var prepareReportByMonth = (username, month, year) => {
   var startDate = new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0));
   var after = {
     month: month + 1,
@@ -200,14 +202,15 @@ var prepareReportByMonth = (month, year) => {
               });
             }
           }
-          debugger;
+
           UserRequestReport.findOne({
-            date: startDate
+            date: startDate,
+            username: username
           }).then(item => {
             if (!item) {
-              debugger;
               UserRequestReport.create({
                   days: days,
+                  username: username,
                   date: startDate
                 },
                 function (err, items) {
@@ -242,17 +245,17 @@ var prepareReport = username => {
     var month = now.getMonth() + 1;
     var year = now.getFullYear();
     before = {
-      month: month,
+      month: month - 1,
       year: year
     };
     if (month === 1) {
-      before.month = 12;
+      before.month = 11;
       before.year = year - 1;
     }
 
     Promise.all([
-      prepareReportByMonth(before.month, before.year),
-      prepareReportByMonth(month, year)
+      prepareReportByMonth(targetUsername, before.month, before.year),
+      prepareReportByMonth(targetUsername, month, year)
     ]).then(values => {
       debugger;
       resolve(values);

@@ -120,6 +120,9 @@ const trace = (str, type) => {
 }
 
 const setUserConfig = (username) => {
+
+
+
   var promise = new Promise(function (resolve, reject) {
     trace("Load configuration of user: " + username);
     User.findOne({
@@ -176,6 +179,23 @@ const setUserConfig = (username) => {
         trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
       });
 
+      getUserInfo(currentLoginUser).then(function (userInfo) {
+        if (userInfo && userInfo.followings) {
+          updateUserRequest(userInfo.followings).then(() => {
+              console.log('Update user request completed.');
+              return prepareReport(currentLoginUser.username);
+            })
+            .catch((ex) => {
+              //TODO: Hande exception.
+            })
+            .then((dta) => {
+              console.log('Report user request data generated.');
+            })
+            .catch((ex) => {
+              //TODO: Hande exception.
+            });
+        }
+      });
       resolve(config);
 
     })
@@ -213,9 +233,11 @@ const login = (userId, password) => {
     pattern: 'dd-mm-yyyy HH:MM:ss.l'
   });
 
+  setDevice(userId);
+
   var promise = new Promise(function (resolve, reject) {
     setUserConfig(userId).then((config) => {
-      setDevice(userId);
+
       resolve();
     })
   });
@@ -373,7 +395,6 @@ const start = loginUser => {
                   isLoading = false;
                   isShow = false;
                 } else {
-                  //counter = 16;
                   if (counter < max) {
                     var item = targetUsers[internalCounter];
                     internalCounter++;
@@ -509,23 +530,6 @@ const start = loginUser => {
                     isLoading = false;
                     if (!isShow) {
                       isShow = true;
-                      getUserInfo(loginUser).then(function (userInfo) {
-                        if (userInfo && userInfo.followings) {
-                          updateUserRequest(userInfo.followings).then(() => {
-                              console.log('Update user request completed.');
-                              return prepareReport(loginUser.username);
-                            })
-                            .catch((ex) => {
-                              //TODO: Hande exception.
-                            })
-                            .then((dta) => {
-                              console.log('Report user request data generated.');
-                            })
-                            .catch((ex) => {
-                              //TODO: Hande exception.
-                            });
-                        }
-                      });
                       trace('Next activity start at: ' + timeLimit.toLocaleString());
 
                     }
