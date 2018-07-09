@@ -257,7 +257,6 @@ var prepareReport = username => {
       prepareReportByMonth(targetUsername, before.month, before.year),
       prepareReportByMonth(targetUsername, month, year)
     ]).then(values => {
-      debugger;
       resolve(values);
     });
   });

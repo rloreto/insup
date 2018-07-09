@@ -500,15 +500,17 @@ const start = loginUser => {
                             })
                             .catch((e) => {
                               if (e) {
-                                trace(e)
                                 trace('Error creating relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                                if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+                                if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.' ||
+                                  e.name === 'TooManyFollowsError' || e.message === 'Account has just too much follows') {
                                   pause = true;
                                   waitFor(waitBetweenOperationMinutes, function () {
                                     isLoading = false;
                                     pause = false;
                                     isLoading = false;
                                   });
+                                } else {
+                                  trace(e);
                                 }
                               }
                               isLoading = false;

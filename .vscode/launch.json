@@ -8,9 +8,19 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "nodemon",
+      "name": "nyrispaces",
       "program": "${workspaceFolder}/instagram.js",
       "args": ["-s", "'nyrispaces'", "'Lucia1969'"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "efectoniepce",
+      "program": "${workspaceFolder}/instagram.js",
+      "args": ["-s", "'efectoniepce'", "'nacandfeez'"],
       "restart": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
