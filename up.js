@@ -14,10 +14,14 @@ var segments;
 var logger;
 var userInfo;
 var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSbXmZEH_J34v';
-const { addUserRequest, updateUserRequest, prepareReport } = require('./stats');
+const {
+  addUserRequest,
+  updateUserRequest,
+  prepareReport
+} = require('./stats');
 
-Date.prototype.addHours = function(h){
-  this.setHours(this.getHours()+h);
+Date.prototype.addHours = function (h) {
+  this.setHours(this.getHours() + h);
   return this;
 }
 
@@ -33,7 +37,9 @@ var _ = require('lodash');
 var Promise = require('bluebird');
 const eachAsync = require('each-async');
 
-const { getFaceInfo } = require('./face');
+const {
+  getFaceInfo
+} = require('./face');
 if (!fs.existsSync('./tmp/')) {
   fs.mkdirSync('./tmp/');
 }
@@ -47,11 +53,12 @@ var pwd_mongo = process.env.PWD_MONGO;
 
 mongoose.connect(
   'mongodb://' +
-    user_mongo +
-    ':' +
-    pwd_mongo +
-    '@ds123695.mlab.com:23695/instagram',
-  { useMongoClient: true }
+  user_mongo +
+  ':' +
+  pwd_mongo +
+  '@ds123695.mlab.com:23695/instagram', {
+    useMongoClient: true
+  }
 );
 mongoose.Promise = Promise;
 var db = mongoose.connection;
@@ -91,34 +98,36 @@ var progressCounter = 0;
 
 const trace = (str, type) => {
   type = type || 'log';
-  switch(type){
+  switch (type) {
     case 'log':
-      logger.log('[' + currentLoginUser.username + '] ' +str);
+      logger.log('[' + currentLoginUser.username + '] ' + str);
       console.log(str);
-    break;
+      break;
     case 'error':
       logger.error(str);
       console.error(str);
-    break;
+      break;
     case 'warn':
       logger.warn(str);
       console.warn(str);
-    break;
+      break;
     case 'info':
       logger.info(str);
       console.info(str);
-    break;
+      break;
   }
 
 }
 
 const setUserConfig = (username) => {
-  var promise = new Promise(function(resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
     trace("Load configuration of user: " + username);
-    User.findOne({ username: username }).then((user) => {
-    var config;
+    User.findOne({
+      username: username
+    }).then((user) => {
+      var config;
       if (!user) {
-        config  = {
+        config = {
           maxOperationsPerHour: 60,
           maxRemoveOperationsPerHour: 60,
           startHour: 8,
@@ -147,28 +156,28 @@ const setUserConfig = (username) => {
         };
       }
 
-      
+
       maxOperationsPerHour = config.maxOperationsPerHour
       maxRemoveOperationsPerHour = config.maxRemoveOperationsPerHour
-      startHour = config.startHour 
-      activityHours = config.activityHours 
-      maxGetUsers = config.maxGetUsers 
-      onlyPublic = config.onlyPublic 
-      maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations 
-      maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations 
-      waitBetweenOperationMinutes = config.waitBetweenOperationMinutes 
-      loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes 
-      segments = config.segments 
-      
+      startHour = config.startHour
+      activityHours = config.activityHours
+      maxGetUsers = config.maxGetUsers
+      onlyPublic = config.onlyPublic
+      maxConsecutiveCreateOperations = config.maxConsecutiveCreateOperations
+      maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations
+      waitBetweenOperationMinutes = config.waitBetweenOperationMinutes
+      loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes
+      segments = config.segments
+
       trace(JSON.stringify(config));
       trace("[OK]");
 
-      getUserStatus().then((availablePercentByUserSegmets)=>{
+      getUserStatus().then((availablePercentByUserSegmets) => {
         trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
       });
 
       resolve(config);
-      
+
     })
   });
 
@@ -185,16 +194,16 @@ const login = (userId, password) => {
   const console_stamp = require('console-stamp')
   var dir = './logs/';
 
-  if (!fs.existsSync(dir)){
-      fs.mkdirSync(dir);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
   }
-  dir = './logs/' + userId.replace('.','_');
+  dir = './logs/' + userId.replace('.', '_');
 
-  if (!fs.existsSync(dir)){
-      fs.mkdirSync(dir);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
   }
-  const output = fs.createWriteStream('./logs/' + userId.replace('.','_') + '/out.log');
-  const errorOutput = fs.createWriteStream('./logs/' + userId.replace('.','_') +'/err.log');
+  const output = fs.createWriteStream('./logs/' + userId.replace('.', '_') + '/out.log');
+  const errorOutput = fs.createWriteStream('./logs/' + userId.replace('.', '_') + '/err.log');
   logger = new console.Console(output, errorOutput);
   db.on('error', logger.error.bind(logger, 'connection error:'));
 
@@ -204,8 +213,8 @@ const login = (userId, password) => {
     pattern: 'dd-mm-yyyy HH:MM:ss.l'
   });
 
-  var promise = new Promise(function(resolve, reject) {
-    setUserConfig(userId).then((config)=>{
+  var promise = new Promise(function (resolve, reject) {
+    setUserConfig(userId).then((config) => {
       setDevice(userId);
       resolve();
     })
@@ -225,17 +234,20 @@ const setDevice = (username) => {
 }
 
 const updateTargetFollowers = (obj) => {
-  var loginUser= { username: obj.username, password: obj.password }
+  var loginUser = {
+    username: obj.username,
+    password: obj.password
+  }
   var targetUsername = obj.targetUserName;
-  var force= obj.force;
+  var force = obj.force;
   var currentSegment = obj.segment;
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.username);
   var currentSession;
   var followers;
-  var promise = new Promise(function(resolve) {
-    var setId = function(name, id) {
-      var targetIndex = _.findIndex(targetUsers, function(userName) {
+  var promise = new Promise(function (resolve) {
+    var setId = function (name, id) {
+      var targetIndex = _.findIndex(targetUsers, function (userName) {
         return userName === name;
       });
       if (targetIndex < 0) {
@@ -256,7 +268,7 @@ const updateTargetFollowers = (obj) => {
           storage,
           loginUser.username,
           loginUser.password
-        ).then(function(session) {
+        ).then(function (session) {
           trace('Procesing...');
 
           var followerCount = user.followerCount;
@@ -266,13 +278,13 @@ const updateTargetFollowers = (obj) => {
             currentSession: session
           };
 
-          getFollowers(targetUser, followerCount, true, force).then(function() {
+          getFollowers(targetUser, followerCount, true, force).then(function () {
             resolve();
           });
         });
       } else {
         var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-        saveUpdateFollowers(1, feeds, user.id, currentLoginUser.username, currentSegment).then(function(followers) {
+        saveUpdateFollowers(1, feeds, user.id, currentLoginUser.username, currentSegment).then(function (followers) {
           resolve();
         });
       }
@@ -294,7 +306,7 @@ const isActivityPeriod = () => {
   var end = new Date(ini.getTime());
   end.addHours(activityHours);
 
-  return(ini <= now && now <= end);
+  return (ini <= now && now <= end);
 }
 
 const start = loginUser => {
@@ -303,7 +315,7 @@ const start = loginUser => {
   } else {
     currentLoginUser = loginUser;
     setDevice(currentLoginUser.username);
-    var promise = new Promise(function(resolve) {
+    var promise = new Promise(function (resolve) {
       getUserInfo(loginUser).then(currentUserInfo => {
         var data = {
           currentUserInfo: currentUserInfo
@@ -322,7 +334,7 @@ const start = loginUser => {
         });
         var startTime;
         var pause = false;
-        var isLoading = false; 
+        var isLoading = false;
         var timeLimit;
         var isShow = false;
         var loopCounter = 0;
@@ -335,7 +347,7 @@ const start = loginUser => {
             clearInterval(loopPointer);
             removeNotFollowers(loginUser);
           } else {
-            if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
+            if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
               setUserConfig(loginUser.username);
             }
 
@@ -348,13 +360,13 @@ const start = loginUser => {
                   targetUsers = users;
                   isLoading = false;
                 });
-                
+
               } else {
-                if(!startTime){
+                if (!startTime) {
                   startTime = new Date();
                   timeLimit = new Date(startTime.getTime()).addHours(1);
                 }
-                
+
                 if (new Date() > timeLimit) {
                   startTime = null;
                   counter = 0;
@@ -431,10 +443,10 @@ const start = loginUser => {
                         data.currentUserInfo.followers
                       );
 
-                      if(follower) {
+                      if (follower) {
                         setInfo(item, currentLoginUser.username, 'isFollower', true)
                       }
-                      
+
                       item.save().then(response => {
                         item = response;
                         var follower = getInfo(response, currentLoginUser.username, 'isFollower');
@@ -443,79 +455,79 @@ const start = loginUser => {
                             .then(added => {
                               if (added) {
                                 addUserRequest(loginUser.username, item.username)
-                                  .then(()=>{
+                                  .then(() => {
                                     //console.log();
                                     return null;
                                   })
-                                  .catch((ex)=>{
-                                  //TODO: Hande exception.
+                                  .catch((ex) => {
+                                    //TODO: Hande exception.
                                   });
-                                trace('Created relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                                trace('Created relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                                 counter++;
-                                if(counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
+                                if (counter % maxConsecutiveCreateOperations === 0 && counter !== max) {
                                   pause = true;
-                                  waitFor(waitBetweenOperationMinutes, function() {
+                                  waitFor(waitBetweenOperationMinutes, function () {
                                     isLoading = false;
                                     pause = false;
                                   });
                                 }
                               } else {
-                                trace('Ignore relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                                trace('Ignore relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                               }
                               isLoading = false;
                               return null;
                             })
-                            .catch((e)=>{     
-                            if (e) {
-                              trace(e)
-                              trace('Error creating relationship: '+ item.username +' '+ (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
-                              if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
-                                pause = true;
-                                waitFor(waitBetweenOperationMinutes, function() {
-                                  isLoading = false;
-                                  pause = false;
-                                  isLoading = false;
-                                });
+                            .catch((e) => {
+                              if (e) {
+                                trace(e)
+                                trace('Error creating relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                                if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+                                  pause = true;
+                                  waitFor(waitBetweenOperationMinutes, function () {
+                                    isLoading = false;
+                                    pause = false;
+                                    isLoading = false;
+                                  });
+                                }
                               }
-                            } 
-                            isLoading = false;
-                          })
+                              isLoading = false;
+                            })
                         } else {
                           trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                           isLoading = false;
                         }
-                        
+
                       });
                     } else {
                       isLoading = false;
-                      if(!isShow){
-                        trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                      if (!isShow) {
+                        trace('Next activity start at: ' + timeLimit.toLocaleString());
                         isShow = true;
                       }
                     }
                   } else {
                     isLoading = false;
-                    if(!isShow){
+                    if (!isShow) {
                       isShow = true;
-                      getUserInfo(loginUser).then(function(userInfo) {
-                        if(userInfo && userInfo.followings ) {
-                          updateUserRequest(userInfo.followings).then(()=>{
-                            console.log('Update user request completed.');
-                            return prepareReport(loginUser.username);
-                          })
-                          .catch((ex)=>{
-                          //TODO: Hande exception.
-                          })
-                          .then((dta)=>{
-                            console.log('Report user request data generated.');
-                          })
-                          .catch((ex)=>{
-                            //TODO: Hande exception.
-                          });
+                      getUserInfo(loginUser).then(function (userInfo) {
+                        if (userInfo && userInfo.followings) {
+                          updateUserRequest(userInfo.followings).then(() => {
+                              console.log('Update user request completed.');
+                              return prepareReport(loginUser.username);
+                            })
+                            .catch((ex) => {
+                              //TODO: Hande exception.
+                            })
+                            .then((dta) => {
+                              console.log('Report user request data generated.');
+                            })
+                            .catch((ex) => {
+                              //TODO: Hande exception.
+                            });
                         }
                       });
-                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
-                      
+                      trace('Next activity start at: ' + timeLimit.toLocaleString());
+
                     }
                   }
                 }
@@ -535,22 +547,22 @@ const start = loginUser => {
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.username);
-  var promise = new Promise(function(resolve) {
-    updateKeyUsers(loginUser.username).then((object)=> {
-      return getUserInfo(loginUser);
-    })
-    .catch((ex) => {
-      return getUserInfo(loginUser);
-    })
-    .then(currentUserInfo => {
+  var promise = new Promise(function (resolve) {
+    updateKeyUsers(loginUser.username).then((object) => {
+        return getUserInfo(loginUser);
+      })
+      .catch((ex) => {
+        return getUserInfo(loginUser);
+      })
+      .then(currentUserInfo => {
         //var users = getFollowingNotFollowers(currentUserInfo);
         var users = currentUserInfo.followings;
         if (users.length === 0) {
           users = currentUserInfo.followings;
         }
         return users;
-    })
-    .then(users => {
+      })
+      .then(users => {
         users = users.reverse();
         var max = maxRemoveOperationsPerHour;
         var counter = 0;
@@ -572,13 +584,13 @@ const removeNotFollowers = (loginUser, forze) => {
             clearInterval(loopPointer);
             start(loginUser);
           } else {
-            if(loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
+            if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
               setUserConfig(loginUser.username);
             }
 
-            if(!pause && !isLoading){
+            if (!pause && !isLoading) {
               isLoading = true;
-              if(!startTime){
+              if (!startTime) {
                 startTime = new Date();
                 timeLimit = new Date(startTime.getTime()).addHours(1);
               }
@@ -600,25 +612,25 @@ const removeNotFollowers = (loginUser, forze) => {
                       }
                       counter++;
                       trace('Destroying relationship ' + counter + ' of ' + max);
-                      if(counter % maxConsecutiveRemoveOperations === 0 && counter !== max) {
+                      if (counter % maxConsecutiveRemoveOperations === 0 && counter !== max) {
                         pause = true;
-                        waitFor(waitBetweenOperationMinutes, function() {
+                        waitFor(waitBetweenOperationMinutes, function () {
                           pause = false;
                           isLoading = false;
                         });
                       }
                       isLoading = false;
-                      
-                    }).catch((e)=>{
-                      if(e && e.code && e.code == 101) {
+
+                    }).catch((e) => {
+                      if (e && e.code && e.code == 101) {
                         trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.')
                       } else {
                         trace(e, 'error');
                       }
-                      
-                      if(e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+
+                      if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
                         pause = true;
-                        waitFor(waitBetweenOperationMinutes, function() {
+                        waitFor(waitBetweenOperationMinutes, function () {
                           pause = false;
                           isLoading = false;
                         });
@@ -628,17 +640,17 @@ const removeNotFollowers = (loginUser, forze) => {
                     });
                   } else {
                     isLoading = false;
-                    if(!isShow){
-                      trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                    if (!isShow) {
+                      trace('Next activity start at: ' + timeLimit.toLocaleString());
                       isShow = true;
                     }
                   }
                 } else {
                   isLoading = false;
-                  if(!isShow){
-                    trace('Next activity start at: ' +  timeLimit.toLocaleString());
+                  if (!isShow) {
+                    trace('Next activity start at: ' + timeLimit.toLocaleString());
                     isShow = true;
-                  }  
+                  }
                 }
               }
             }
@@ -646,18 +658,18 @@ const removeNotFollowers = (loginUser, forze) => {
         }
         loop();
         var loopPointer = setInterval(loop, 1000);
-    });
+      });
   });
 
   return promise;
 };
 
 const setInfo = (user, currentUsername, property, value) => {
-  if(user.info && user.info.length>0){
-    var found = user.info.find(function(item) {
+  if (user.info && user.info.length > 0) {
+    var found = user.info.find(function (item) {
       return item.un === currentUsername && item[property];
     });
-    if (!found){
+    if (!found) {
       var obj = {
         un: currentUsername
       }
@@ -677,29 +689,29 @@ const setInfo = (user, currentUsername, property, value) => {
 }
 
 const getInfo = (user, currentUsername, property) => {
-  if(user.info && user.info.length>0){
-    var found = user.info.find(function(item) {
+  if (user.info && user.info.length > 0) {
+    var found = user.info.find(function (item) {
       return item.un === currentUsername && item[property] !== undefined;
     });
-    if (found){
+    if (found) {
       return found[property];
     }
-  } 
+  }
 }
 
 const waitFor = (minutes, done) => {
   var total = minutes * 60 * 1000;
-  var internalCounter = 0; 
+  var internalCounter = 0;
   trace("Waiting " + minutes + " minutes for next loop...");
-  var internalPointer = setInterval(function(){
+  var internalPointer = setInterval(function () {
     internalCounter++;
-    var remainingMs = (total - (internalCounter * 1000))/1000
-    if(remainingMs % 60 === 0) {
+    var remainingMs = (total - (internalCounter * 1000)) / 1000
+    if (remainingMs % 60 === 0) {
       trace('Remaining time: ' + remainingMs / 60 + ' minutes');
     }
-    if((internalCounter *  1000) > total){
+    if ((internalCounter * 1000) > total) {
       clearInterval(internalPointer);
-      if(done){
+      if (done) {
         done();
       }
     }
@@ -708,35 +720,50 @@ const waitFor = (minutes, done) => {
 
 const getUsers = (numLimits, username) => {
 
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function (resolve) {
 
     var filter = {
-      "attempts.un":  { "$ne": username },
+      "attempts.un": {
+        "$ne": username
+      },
       "$or": [{
-          "info.un":  { "$eq": username },
-          "info.unfollowed":  { "$ne": true}
+          "info.un": {
+            "$eq": username
+          },
+          "info.unfollowed": {
+            "$ne": true
+          }
         },
         {
-          "info.un":  { "$ne": username }
+          "info.un": {
+            "$ne": username
+          }
         }
       ],
-      "$or": [
-      {
-        "info.un":  { "$eq": username },
-        "info.isFollower":  { "$ne": true}
-      },
-      {
-        "info.un":  { "$ne": username }
-      }
-    ]
+      "$or": [{
+          "info.un": {
+            "$eq": username
+          },
+          "info.isFollower": {
+            "$ne": true
+          }
+        },
+        {
+          "info.un": {
+            "$ne": username
+          }
+        }
+      ]
     };
 
 
-    if(segments && segments.length>0){
+    if (segments && segments.length > 0) {
       _.forEach(segments, (segment) => {
         filter["$and"] = [];
-       
-        var segmentsIntenal = {"$or": []}
+
+        var segmentsIntenal = {
+          "$or": []
+        }
         segmentsIntenal["$or"].push({
           segment: segment
         })
@@ -749,7 +776,9 @@ const getUsers = (numLimits, username) => {
     if (numLimits && Number.isInteger(numLimits)) {
       query = query.limit(numLimits);
     }
-    query.sort({ order: 1 }).then(users => {
+    query.sort({
+      order: 1
+    }).then(users => {
       trace('Recieved ' + users.length + ' new users.');
       resolve(users);
     });
@@ -762,8 +791,8 @@ _.bind(start, this);
 _.bind(removeNotFollowers, this);
 
 const createRelationship = (username, segments, onlyPublic) => {
-  var promise = new Promise(function(resolve, reject) {
-      getUserId(currentLoginUser, username)
+  var promise = new Promise(function (resolve, reject) {
+    getUserId(currentLoginUser, username)
       .then(response => {
         var user;
         if (!response.hasError) {
@@ -771,14 +800,17 @@ const createRelationship = (username, segments, onlyPublic) => {
         } else {
           if (response.error.name === 'IGAccountNotFoundError') {
             var total = segments.length;
-            var counter = 0 ;
+            var counter = 0;
             _.each(segments, (segment) => {
-              UserBase.remove({ username: username, segment: segment }).then(err => {
+              UserBase.remove({
+                username: username,
+                segment: segment
+              }).then(err => {
                 if (err.result.ok === 1) {
                   trace('removed:' + username);
                 }
                 counter++;
-                if(counter == total) {
+                if (counter == total) {
                   resolve(false);
                 }
               });
@@ -812,7 +844,7 @@ const createRelationship = (username, segments, onlyPublic) => {
         } else {
           var attempts = getAttempts(username, currentLoginUser.username);
           if (!attempts) {
-            return getUserFromDb(username).then((item)=>{
+            return getUserFromDb(username).then((item) => {
               if (item) {
                 setAttempts(item, currentLoginUser.username, 1);
                 item.save();
@@ -840,7 +872,7 @@ const createRelationship = (username, segments, onlyPublic) => {
           attempts++;
           setAttempts(user, currentLoginUser.username, attempts++);
           user.save((err, response) => {
-            if(!err){
+            if (!err) {
               trace('[OK]');
               resolve(true);
             }
@@ -849,76 +881,79 @@ const createRelationship = (username, segments, onlyPublic) => {
           resolve(false);
         }
       });
-    
+
   });
 
   return promise;
 };
 
 const destroyRelationship = username => {
-  var promise = new Promise(function(resolve, reject) {
-   
-    KeyUser.findOne({ username: username, userId: currentLoginUser.username }).then((user) => {
-      if(user) {
-        const error = new Error();
-        error.code = 101; 
-        error.message = 'The user is in the keyuser list';
-        reject(error);
-      } else {
-        return getUserId(currentLoginUser, username);
-      }
-    })
-    .catch(e => {
-      reject(e);
-    })
-    .then(response => {
-      var user;
-      if (!response.hasError) {
-        user = response.data;
-      }
-      if (user && !user.friendshipStatus.outgoing_request) {
-        trace('Destroy relationship with ' + username);
-        return Client.Relationship.destroy(currentSession, user.id);
-      } else {
-        resolve();
-      }
-    })
-    .catch(e => {
-      reject(e);
-    })
-    .then(relationship => {
-      trace('[OK]');
-      if (relationship) {
-        return getUserFromDb(username);
-      } else {
-        resolve();
-      }
-    })
-    .then(user => {
-      resolve(user);
-    });
+  var promise = new Promise(function (resolve, reject) {
+
+    KeyUser.findOne({
+        username: username,
+        userId: currentLoginUser.username
+      }).then((user) => {
+        if (user) {
+          const error = new Error();
+          error.code = 101;
+          error.message = 'The user is in the keyuser list';
+          reject(error);
+        } else {
+          return getUserId(currentLoginUser, username);
+        }
+      })
+      .catch(e => {
+        reject(e);
+      })
+      .then(response => {
+        var user;
+        if (!response.hasError) {
+          user = response.data;
+        }
+        if (user && !user.friendshipStatus.outgoing_request) {
+          trace('Destroy relationship with ' + username);
+          return Client.Relationship.destroy(currentSession, user.id);
+        } else {
+          resolve();
+        }
+      })
+      .catch(e => {
+        reject(e);
+      })
+      .then(relationship => {
+        trace('[OK]');
+        if (relationship) {
+          return getUserFromDb(username);
+        } else {
+          resolve();
+        }
+      })
+      .then(user => {
+        resolve(user);
+      });
   });
   return promise;
 };
 
 const getAttempts = (user, currentUsername) => {
-  if(user.attempts && user.attempts.length>0){
-    var found = user.attempts.find(function(item) {
+  if (user.attempts && user.attempts.length > 0) {
+    var found = user.attempts.find(function (item) {
       return item.un === currentUsername;
     });
-    if (found){
+    if (found) {
       return found.n;
     }
-  } 
+  }
   return 0;
 }
 
 const setAttempts = (user, currentUsername, value) => {
-  if(user.attempts && user.attempts.length>0){
-    var found = user.attempts.find(function(item) {
+  if (user.attempts && user.attempts.length > 0) {
+    var found = user.attempts.find(function (item) {
       return item.un === currentUsername
     });
-    if (!found){
+    if (!found) {
       user.attempts.push({
         un: currentUsername,
         n: value
@@ -947,16 +982,19 @@ const isFollower = (username, providerFollowers) => {
 };
 
 const setUnfollowed = (username, unfollowBy, segments) => {
-  _.each(segments, (segment)=>{
-    UserBase.findOne({ segment: segment, username: username }, function(err, user) {
+  _.each(segments, (segment) => {
+    UserBase.findOne({
+      segment: segment,
+      username: username
+    }, function (err, user) {
       if (!err) {
         if (user) {
-          if(user.info && user.info.length > 0){
-            var found = user.info.find(function(item) {
+          if (user.info && user.info.length > 0) {
+            var found = user.info.find(function (item) {
               return item.un === username;
             });
-  
-            if(!found) {
+
+            if (!found) {
               user.info.push({
                 un: unfollowBy,
                 unfollowed: true
@@ -964,50 +1002,56 @@ const setUnfollowed = (username, unfollowBy, segments) => {
             } else {
               found.unfollowed = true;
             }
-  
+
           } else {
             user.info.push({
               un: unfollowBy,
               unfollowed: true
             });
           }
-          user.save(function(err) {
+          user.save(function (err) {
             if (err) {
-              trace(err,'error');
+              trace(err, 'error');
             }
           });
         }
       }
     });
   })
-  
+
 };
 
 const getUserId = (loginUser, username) => {
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function (resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
-      .then(function(session) {
+      .then(function (session) {
         var data = {
           currentSession: session
         };
         currentSession = session;
         return Client.Account.searchForUser(session, username);
       })
-      .then(function(user) {
-        resolve({ hasError: false, data: user._params });
+      .then(function (user) {
+        resolve({
+          hasError: false,
+          data: user._params
+        });
       })
-      .catch(function(e) {
-        resolve({ hasError: true, error: e });
+      .catch(function (e) {
+        resolve({
+          hasError: true,
+          error: e
+        });
       });
   });
   return promise;
 };
 
 const getUserFromDb = (username) => {
-  var promise = new Promise(function(resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
 
     var segmentFilter = {}
-    if(segments && segments.length>0){
+    if (segments && segments.length > 0) {
       segmentFilter["$or"] = [];
       _.forEach(segments, (segment) => {
         segmentFilter["$or"].push({
@@ -1015,19 +1059,23 @@ const getUserFromDb = (username) => {
         })
       });
     }
-   
-    const filter = _.assign(segmentFilter, { username: username});
+
+    const filter = _.assign(segmentFilter, {
+      username: username
+    });
     UserBase.find(filter).then(
       users => {
-        if (users && users.length>0) {
-          for(var i=1; i<users.length; i++) {
+        if (users && users.length > 0) {
+          for (var i = 1; i < users.length; i++) {
             trace('Duplicates for username: ' + username);
             var id = users[i].get('id');
-            UserBase.remove({_id: id}).then((response)=>{
+            UserBase.remove({
+              _id: id
+            }).then((response) => {
               if (response.result && !response.result.ok) {
                 reject(response);
-              } 
-              trace('Removed duplicate item ' +  id);
+              }
+              trace('Removed duplicate item ' + id);
             })
           }
           resolve(users[0]);
@@ -1046,15 +1094,15 @@ const getUserInfoByUserName = (loginUser, username) => {
 
 
 const getUserInfo = (loginUser, forceGetAllFollowers) => {
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function (resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
-      .then(function(session) {
+      .then(function (session) {
         var data = {
           currentSession: session
         };
         return [data, Client.Account.searchForUser(session, loginUser.username)];
       })
-      .spread(function(data, user) {
+      .spread(function (data, user) {
         data.followerCount = user._params.followerCount;
         data.currentUser = {
           id: user._params.id,
@@ -1064,13 +1112,13 @@ const getUserInfo = (loginUser, forceGetAllFollowers) => {
         trace('Getting ' + loginUser.username + ' followings');
         return [data, getFollowing(data.currentUser)];
       })
-      .spread(function(data, followings) {
+      .spread(function (data, followings) {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
         return [data, getFollowers(data.currentUser, data.followerCount, false, forceGetAllFollowers)];
       })
-      .spread(function(data, followers) {
+      .spread(function (data, followers) {
         trace('[OK]');
         data.followers = followers;
         resolve(data);
@@ -1090,10 +1138,10 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
   var feedsDone = [];
   var cacheFile = './tmp/' + user.name + '_followers.json';
 
-  var promise = new Promise(function(resolve) {
+  var promise = new Promise(function (resolve) {
     if (!fs.existsSync(cacheFile) || force) {
       trace('Getting followers from live. NO CACHE');
-      var timeoutObj = setInterval(function() {
+      var timeoutObj = setInterval(function () {
         if (counter > followerCount) {
           clearInterval(timeoutObj);
           printPercent(100);
@@ -1103,14 +1151,14 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
           printPercent(counter / followerCount * 100.0);
           if (getMore) {
             getMore = false;
-            accountFollowers.get().then(function(results) {
+            accountFollowers.get().then(function (results) {
               if (results && results.length > 0) {
                 var data = _.flattenDeep(results);
-                var followers = _.map(data, function(feed) {
+                var followers = _.map(data, function (feed) {
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id).then(function(
+                  saveUpdateFollowers(page, followers, user.id).then(function (
                     followers
                   ) {
                     Array.prototype.push.apply(feedsDone, followers);
@@ -1147,10 +1195,10 @@ const getFollowing = user => {
     user.currentSession,
     user.id
   );
-  var promise = new Promise(function(resolve) {
-    accountFollowing.get().then(function(results) {
+  var promise = new Promise(function (resolve) {
+    accountFollowing.get().then(function (results) {
       var data = _.flattenDeep(results);
-      var feeds = _.map(data, function(feed) {
+      var feeds = _.map(data, function (feed) {
         return feed._params;
       });
       resolve(feeds);
@@ -1160,42 +1208,41 @@ const getFollowing = user => {
   return promise;
 };
 
-const getUserStatus =  function() {
+const getUserStatus = function () {
   var promise = new Promise((resolve) => {
-    UserBase.count({ segment: 
-      {
-        "$in": segments 
+    UserBase.count({
+      segment: {
+        "$in": segments
       }
     }).then((total) => {
       UserBase.count({
         "segment": {
           "$in": segments
         },
-        "$or": [
-            {
-                "attempts.un": {
-                    "$eq": currentLoginUser.username
-                },
-                "attempts.n": {
-                    "$lt": 1
-                }
+        "$or": [{
+            "attempts.un": {
+              "$eq": currentLoginUser.username
             },
-            {
-                "attempts.un": {
-                    "$ne": currentLoginUser.username
-                }
-            },
-            {
-                "info.un": {
-                    "$eq": currentLoginUser.username
-                },
-                "info.unfollowed": {
-                    "$ne": true
-                }
+            "attempts.n": {
+              "$lt": 1
             }
+          },
+          {
+            "attempts.un": {
+              "$ne": currentLoginUser.username
+            }
+          },
+          {
+            "info.un": {
+              "$eq": currentLoginUser.username
+            },
+            "info.unfollowed": {
+              "$ne": true
+            }
+          }
         ]
       }).then((available) => {
-        resolve((available / total * 100).toFixed(2) );
+        resolve((available / total * 100).toFixed(2));
       });
     });
   });
@@ -1208,8 +1255,8 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
   var total = feeds.length * segments.length;
   var count = 0;
   providerId = providerId | 0;
-  var promise = new Promise(function(resolveSave) {
-    _.forEach(feeds, function(value, index) {
+  var promise = new Promise(function (resolveSave) {
+    _.forEach(feeds, function (value, index) {
       var userId = value.id;
       var username = value.username;
 
@@ -1217,12 +1264,15 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
       if (!pictureUrl) {
         pictureUrl = value.picture;
       }
-      _.each(segments, (segment)=>{
-        UserBase.findOne({ segment: segment, username: username }, (err,user) => {
-          current = ((count/total) * 100).toFixed(2);
+      _.each(segments, (segment) => {
+        UserBase.findOne({
+          segment: segment,
+          username: username
+        }, (err, user) => {
+          current = ((count / total) * 100).toFixed(2);
           if (!err) {
             var isNew;
-            if (!user ) {
+            if (!user) {
               user = {
                 segment: segment,
                 username: username,
@@ -1231,20 +1281,20 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
               };
               isNew = true;
             }
-            
-            if(!isNew && !getInfo(user, currentLoginUser.username, 'isFollower')){
+
+            if (!isNew && !getInfo(user, currentLoginUser.username, 'isFollower')) {
               setInfo(user, currentLoginUser.username, 'isFollower', true);
-            } 
-            if(isNew) {
-              UserBase.create(user, function(err, user) {
-  
+            }
+            if (isNew) {
+              UserBase.create(user, function (err, user) {
+
                 if (err) {
                   trace(err, 'error');
                 }
                 //trace(current + '% ' + 'Created new' + username + ' (segment: ' + segment + ')');
               });
             } else {
-              user.save(function(err, user) {
+              user.save(function (err, user) {
                 if (err) {
                   trace(err, 'error');
                 }
@@ -1253,12 +1303,12 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
             }
 
           } else {
-      
+
             console.log('err')
-           
-          } 
+
+          }
           count++;
-          if (count >= total -1) {
+          if (count >= total - 1) {
             resolveSave(feeds);
           }
         });
@@ -1270,9 +1320,9 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
 };
 
 const createFile = filename => {
-  fs.open(filename, 'r', function(err, fd) {
+  fs.open(filename, 'r', function (err, fd) {
     if (err) {
-      fs.writeFile(filename, '', function(err) {
+      fs.writeFile(filename, '', function (err) {
         if (err) {
           trace(err, 'error');
         }
@@ -1293,25 +1343,31 @@ const printPercent = (number, post) => {
 
 
 const updateKeyUsers = (targetUsername) => {
-  console.log('Update key user from dropbox to: ' + targetUsername );
+  console.log('Update key user from dropbox to: ' + targetUsername);
   let counter = 0;
-  var promise = new Promise(function(resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
     readExcel(targetUsername).then((usernames) => {
       usernames.forEach((username) => {
         var item = username["Instagram Usernames"];
-        KeyUser.findOne({ username: item, userId: targetUsername }).then((user) => {
-          if(!user) {
-            KeyUser.create({ username: item, userId: targetUsername }).then((user) => {
+        KeyUser.findOne({
+          username: item,
+          userId: targetUsername
+        }).then((user) => {
+          if (!user) {
+            KeyUser.create({
+              username: item,
+              userId: targetUsername
+            }).then((user) => {
               counter++;
-              if(counter >= usernames.length) {
+              if (counter >= usernames.length) {
                 console.log(counter + ' users procesed!');
                 console.log('[Ok]');
                 resolve();
               }
-            }).catch((err)=> {
+            }).catch((err) => {
               console.log(err);
               counter++;
-              if(counter >= usernames.length) {
+              if (counter >= usernames.length) {
                 console.log(counter + ' users procesed!');
                 console.log('[Ok]');
                 resolve();
@@ -1319,7 +1375,7 @@ const updateKeyUsers = (targetUsername) => {
             });
           } else {
             counter++;
-            if(counter >= usernames.length) {
+            if (counter >= usernames.length) {
               console.log(counter + ' users procesed!');
               console.log('[Ok]');
               resolve();
@@ -1327,7 +1383,7 @@ const updateKeyUsers = (targetUsername) => {
           }
         });
       });
-    }).catch((err)=>{
+    }).catch((err) => {
       console.log(err.message);
       console.log('[Failed]');
       reject(err);
@@ -1338,21 +1394,27 @@ const updateKeyUsers = (targetUsername) => {
 
 const readExcel = (username) => {
 
-  var promise = new Promise(function(resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
     const error = new Error();
-    var dbx = new Dropbox({ accessToken: dropboxAccessToken });
-    dbx.filesListFolder({ path: '' })
+    var dbx = new Dropbox({
+      accessToken: dropboxAccessToken
+    });
+    dbx.filesListFolder({
+        path: ''
+      })
       .then(function (response) {
         var promises = [];
-        if(response.entries) {
+        if (response.entries) {
           var promise;
-          response.entries.forEach((item) =>{
-            if(item.path_lower.indexOf(username)>0) {
-              promise = dbx.filesDownload({ path: item.path_lower });
+          response.entries.forEach((item) => {
+            if (item.path_lower.indexOf(username) > 0) {
+              promise = dbx.filesDownload({
+                path: item.path_lower
+              });
               return;
-            } 
+            }
           })
-          if(promise){
+          if (promise) {
             return promise;
           } else {
             error.message = "Dropbox file not found";
@@ -1366,12 +1428,14 @@ const readExcel = (username) => {
       .catch(function (err) {
         reject(err);
       })
-      .then((data)=> {
-        if(!data) {
+      .then((data) => {
+        if (!data) {
           reject();
         } else {
-          var workbook = XLSX.read(data.fileBinary, {type:'buffer'});
-          const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); 
+          var workbook = XLSX.read(data.fileBinary, {
+            type: 'buffer'
+          });
+          const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
           /*fs.writeFile(data.name, data.fileBinary, 'binary', function (err) {
             if (err) { throw err; }
             console.log('File: ' + data.name + ' saved.');
@@ -1379,11 +1443,17 @@ const readExcel = (username) => {
           resolve(json);
         }
       })
-      .catch((err)=>{
+      .catch((err) => {
         debugger;
       });
   });
   return promise;
 };
 
-module.exports = { login, updateTargetFollowers, start, removeNotFollowers, updateKeyUsers };
+module.exports = {
+  login,
+  updateTargetFollowers,
+  start,
+  removeNotFollowers,
+  updateKeyUsers
+};
