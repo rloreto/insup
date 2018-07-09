@@ -122,25 +122,20 @@ var updateUserRequest =  (followings) => {
   return new Promise(promiseFn);
 };
 
+var prepareReportByMonth = (month, year) => {
+  var startDate = new Date(year, month, 1, 0, 0, 0, 0);
+  after = {month: month + 1 ,year: year};
+  if(month === 12) {
+    after.month = 1;
+    after.year = year + 1;
+  }
 
-var prepareReport = (username) => {
-  targetUsername = username;
   var promise = new Promise(function(resolve, reject) {
-    var now = new Date();
-    var month = now.getMonth();
-    var year = now.getFullYear();
-    after = {month: month + 1 ,year: year};
-    if(month === 12) {
-      after.month = 1;
-      after.year = year + 1;
-    }
-    var startDate = new Date(year, month, 1, 0, 0, 0, 0);
     UserRequest.find({ 
       username: targetUsername, 
       created: {$gte: new Date(year, month, 1, 0, 0, 0, 0)},
       created: {$lt: new Date(after.year, after.month , 1, 0, 0, 0, 0)},
     }, function(err, items) {
-
       if (!err) {
           var days = [];
           var daysInMonth = new Date(year, month, 0).getDate();
@@ -152,7 +147,7 @@ var prepareReport = (username) => {
             var founds = items.filter((item)=>{
               return from<=item.created && item.created<to;
             });
-           
+          
             if(founds && founds.length > 0) {
 
               var success = founds.filter((item) => item.state === 'Success');
@@ -175,9 +170,8 @@ var prepareReport = (username) => {
           }
           UserRequestReport.find({date: startDate }).then((item)=>{
             if(item) {
-              UserRequestReport.create({ days: days, date: startDate }, function(err,items) {
+              UserRequestReport.create({ days: days, date: startDate }, function(err,item) {
                 if (!err) {
-                  debugger;
                     resolve(item);
                 } else {
                   reject(err);
@@ -194,6 +188,28 @@ var prepareReport = (username) => {
       } else {
         reject(err);
       }
+    });
+  });
+
+  return promise;
+}
+
+var prepareReport = (username) => {
+  targetUsername = username;
+  var promise = new Promise(function(resolve, reject) {
+    var now = new Date();
+    var month = now.getMonth();
+    var year = now.getFullYear();
+    before = {month: month - 1 ,year: year};
+    if(month === 1) {
+      before.month = 12;
+      before.year = year -1;
+    };
+
+    Promise.all([prepareReportByMonth(before.month, before.year),
+    prepareReportByMonth(month, year)]).then((values)=>{
+      debugger;
+      resolve(values);
     });
   });
 
