@@ -562,7 +562,7 @@ const removeNotFollowers = (loginUser, forze) => {
 
                     }).catch((e) => {
                       if (e && e.code && e.code == 101) {
-                        trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.', 'log')
+                        //trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.', 'log')
                       } else {
                         trace(e, 'error');
                       }
