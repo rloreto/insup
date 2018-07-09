@@ -629,12 +629,13 @@ const removeNotFollowers = (loginUser, forze) => {
 
                     }).catch((e) => {
                       if (e && e.code && e.code == 101) {
-                        trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.')
+                        trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.', 'log')
                       } else {
                         trace(e, 'error');
                       }
 
-                      if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.') {
+                      if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.' ||
+                        e.name === 'TooManyFollowsError' || e.message === 'Account has just too much follows') {
                         pause = true;
                         waitFor(waitBetweenOperationMinutes, function () {
                           pause = false;
