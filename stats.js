@@ -168,9 +168,9 @@ var prepareReportByMonth = (month, year) => {
               });
             }
           }
-          UserRequestReport.find({date: startDate }).then((item)=>{
-            if(item) {
-              UserRequestReport.create({ days: days, date: startDate }, function(err,item) {
+          UserRequestReport.find({date: from }).then((item)=>{
+            if(!item) {
+              UserRequestReport.create({ days: days, date: from }, function(err,item) {
                 if (!err) {
                     resolve(item);
                 } else {
@@ -179,8 +179,9 @@ var prepareReportByMonth = (month, year) => {
               })
             } else {
               item.days = days;
-              item.save();
-              resilve(item);
+              item.save(function (err, updateItem) {
+                resolve(updateItem);
+              });
             }
           })
 

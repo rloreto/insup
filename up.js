@@ -361,6 +361,7 @@ const start = loginUser => {
                   isLoading = false;
                   isShow = false;
                 } else {
+                  //counter = 16;
                   if (counter < max) {
                     var item = targetUsers[internalCounter];
                     internalCounter++;
