@@ -185,7 +185,7 @@ var prepareReportByMonth = (username, month, year) => {
   }
 
   var promise = new Promise(function (resolve, reject) {
-    console.log("[Begin] Preparong " + month + "/" + year);
+    console.log("[Begin] Preparing " + month + "/" + year);
     UserRequest.find({
         username: username,
         created: {
@@ -279,7 +279,7 @@ var prepareReportByMonth = (username, month, year) => {
                 function (err, items) {
                   if (!err) {
                     resolve(item);
-                    console.log("[End] Preparong " + month + "/" + year);
+                    console.log("[End] Preparing " + month + "/" + year);
                   } else {
                     reject(err);
                   }
@@ -290,11 +290,12 @@ var prepareReportByMonth = (username, month, year) => {
               item.total = total;
               item.save(function (err, item) {
                 resolve(item);
-                console.log("[End] Preparong " + month + "/" + year);
+                console.log("[End] Preparing " + month + "/" + year);
               });
             }
           });
         } else {
+          console.log("[Failed] Preparing " + month + "/" + year);
           reject(err);
         }
       }
@@ -319,7 +320,7 @@ var prepareReport = username => {
       before.year = year - 1;
     }
     prepareReportByMonth(targetUsername, before.month, before.year).then((data1) => {
-      prepareReportByMonth(targetUsername, month, year).then((data2) => {
+      return prepareReportByMonth(targetUsername, month, year).then((data2) => {
         resolve([data1, data2]);
       })
     });
