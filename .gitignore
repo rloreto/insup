@@ -3,3 +3,4 @@ logs/
 .env
 cookies/*.json
 tmp/
+ecosystem.config.js
