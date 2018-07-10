@@ -211,6 +211,7 @@ var updateUserRequest = (username, followers) => {
 
   var resolveFn = (resolve) => {
     if (resolve && pendingProcesed && timeoutPorcesed) {
+      target = undefined;
       resolve();
     }
   }
