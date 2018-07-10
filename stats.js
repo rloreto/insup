@@ -290,8 +290,8 @@ var prepareReportByMonth = (username, month, year) => {
               item.days = days;
               item.total = total;
               item.save(function (err, item) {
-                resolve(item);
                 console.log("[End] Preparing " + month + "/" + year);
+                resolve(item);
               });
             }
           });
