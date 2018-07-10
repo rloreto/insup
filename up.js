@@ -488,103 +488,87 @@ const removeNotFollowers = (loginUser, forze) => {
   setDevice(currentLoginUser.username);
   var promise = new Promise(function (resolve) {
     updateKeyUsers(loginUser.username).then((object) => {
-        return getUserInfo(loginUser);
-      })
-      .catch((ex) => {
-        return getUserInfo(loginUser);
-      })
-      .then(currentUserInfo => {
-        //var users = getFollowingNotFollowers(currentUserInfo);
-        var users = currentUserInfo.followings;
-        if (users.length === 0) {
-          users = currentUserInfo.followings;
-        }
-        return users;
-      })
-      .then(users => {
-        users = users.reverse();
-        var max = maxRemoveOperationsPerHour;
-        var counter = 0;
-        var internalCounter = 0;
-        var startTime;
-        var pause = false;
-        var isLoading = false;
-        var timeLimit;
-        var isShow = false;
-        var loopCounter = 0;
-        var loadConfigurationUpdateFrecuencySeconds = loadConfigurationUpdateFrecuencyMinutes * 60;
+      var users = userInfo.currentUserInfo.followings;
+      if (users.length === 0) {
+        users = userInfo.currentUserInfo.followings;
+      }
 
-        function loop() {
-          loopCounter++;
-          var date = new Date();
-          var currentHour = date.getHours();
+      users = users.reverse();
+      var max = maxRemoveOperationsPerHour;
+      var counter = 0;
+      var internalCounter = 0;
+      var startTime;
+      var pause = false;
+      var isLoading = false;
+      var timeLimit;
+      var isShow = false;
+      var loopCounter = 0;
+      var loadConfigurationUpdateFrecuencySeconds = loadConfigurationUpdateFrecuencyMinutes * 60;
 
-          if (isActivityPeriod() && !forze) {
-            clearInterval(loopPointer);
-            start(loginUser);
-          } else {
-            if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
-              setUserConfig(loginUser.username);
+      function loop() {
+        loopCounter++;
+        var date = new Date();
+        var currentHour = date.getHours();
+
+        if (isActivityPeriod() && !forze) {
+          clearInterval(loopPointer);
+          start(loginUser);
+        } else {
+          if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
+            setUserConfig(loginUser.username);
+          }
+
+          if (!pause && !isLoading) {
+            isLoading = true;
+            if (!startTime) {
+              startTime = new Date();
+              timeLimit = new Date(startTime.getTime()).addHours(1);
             }
 
-            if (!pause && !isLoading) {
-              isLoading = true;
-              if (!startTime) {
-                startTime = new Date();
-                timeLimit = new Date(startTime.getTime()).addHours(1);
-              }
-
-              if (new Date() > timeLimit) {
-                counter = 0;
-                isLoading = false;
-                startTime = null;
-                isShow = false;
-                pause = false;
-              } else {
-                if (counter < max) {
-                  var item = users[internalCounter];
-                  internalCounter++;
-                  if (item) {
-                    destroyRelationship(item.username).then(user => {
-                      if (user) {
-                        setUnfollowed(user.username, currentLoginUser.username, segments);
-                      }
-                      counter++;
-                      trace('Destroying relationship ' + counter + ' of ' + max);
-                      if (counter % maxConsecutiveRemoveOperations === 0 && counter !== max) {
-                        pause = true;
-                        waitFor(waitBetweenOperationMinutes, function () {
-                          pause = false;
-                          isLoading = false;
-                        });
-                      }
-                      isLoading = false;
-
-                    }).catch((e) => {
-                      if (e && e.code && e.code == 101) {
-                        //trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.', 'log')
-                      } else {
-                        trace(e, 'error');
-                      }
-
-                      if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.' ||
-                        e.name === 'TooManyFollowsError' || e.message === 'Account has just too much follows') {
-                        pause = true;
-                        waitFor(waitBetweenOperationMinutes, function () {
-                          pause = false;
-                          isLoading = false;
-                        });
-                      } else {
-                        isLoading = false;
-                      }
-                    });
-                  } else {
-                    isLoading = false;
-                    if (!isShow) {
-                      trace('Next activity start at: ' + timeLimit.toLocaleString());
-                      isShow = true;
+            if (new Date() > timeLimit) {
+              counter = 0;
+              isLoading = false;
+              startTime = null;
+              isShow = false;
+              pause = false;
+            } else {
+              if (counter < max) {
+                var item = users[internalCounter];
+                internalCounter++;
+                if (item) {
+                  destroyRelationship(item.username).then(user => {
+                    if (user) {
+                      setUnfollowed(user.username, currentLoginUser.username, segments);
                     }
-                  }
+                    counter++;
+                    trace('Destroying relationship ' + counter + ' of ' + max);
+                    if (counter % maxConsecutiveRemoveOperations === 0 && counter !== max) {
+                      pause = true;
+                      waitFor(waitBetweenOperationMinutes, function () {
+                        pause = false;
+                        isLoading = false;
+                      });
+                    }
+                    isLoading = false;
+
+                  }).catch((e) => {
+                    if (e && e.code && e.code == 101) {
+                      //trace('the user ' + item.username + ' is in the keyuser list. This user was not destroyed.', 'log')
+                    } else {
+                      trace(e, 'error');
+                    }
+
+                    if (e.name === 'ActionSpamError' || e.message === 'Please wait a few minutes before you try again.' ||
+                      e.name === 'TooManyFollowsError' || e.message === 'Account has just too much follows') {
+                      pause = true;
+                      waitFor(waitBetweenOperationMinutes, function () {
+                        pause = false;
+                        isLoading = false;
+                      });
+                    } else {
+                      isLoading = false;
+                    }
+                  });
                 } else {
                   isLoading = false;
                   if (!isShow) {
@@ -592,13 +576,20 @@ const removeNotFollowers = (loginUser, forze) => {
                     isShow = true;
                   }
                 }
+              } else {
+                isLoading = false;
+                if (!isShow) {
+                  trace('Next activity start at: ' + timeLimit.toLocaleString());
+                  isShow = true;
+                }
               }
             }
           }
         }
-        loop();
-        var loopPointer = setInterval(loop, 1000);
-      });
+      }
+      loop();
+      var loopPointer = setInterval(loop, 1000);
+    });
   });
 
   return promise;
@@ -862,8 +853,8 @@ const destroyRelationship = username => {
         reject(e);
       })
       .then(relationship => {
-        trace('[OK]');
         if (relationship) {
+          trace('[OK]');
           return getUserFromDb(username);
         } else {
           resolve();
