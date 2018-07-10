@@ -43,6 +43,14 @@ var totalSchema = new mongoose.Schema({
 });
 var daySchema = new mongoose.Schema({
   date: Date,
+  success: Number,
+  timeout: Number,
+  cancel: Number,
+  pending: Number
+});
+
+var dayDetailSchema = new mongoose.Schema({
+  date: Date,
   success: [userSchema],
   timeout: [userSchema],
   cancel: [userSchema],
@@ -54,7 +62,8 @@ var UserRequestReport = mongoose.model('UserRequestReport', {
   username: String,
   date: Date,
   total: totalSchema,
-  days: [daySchema]
+  days: [daySchema],
+  detailDays: [dayDetailSchema]
 });
 
 
@@ -90,6 +99,21 @@ var reset = (username, targetUsername) => {
   });
 };
 
+Array.prototype.contains = function (k, callback) {
+  var self = this;
+  return (function check(i) {
+    if (i >= self.length) {
+      return callback(false);
+    }
+
+    if (self[i] === k) {
+      return callback(true);
+    }
+
+    return process.nextTick(check.bind(null, i + 1));
+  }(0));
+}
+
 var addUserRequest = (username, targetUsername) => {
   return new Promise(function (resolve, reject) {
     UserRequest.create({
@@ -123,27 +147,35 @@ var updateUserRequest = (username, followers) => {
       },
       function (err, items) {
         if (!err) {
+          var promises = [];
+          var followersMap = target.map(function (item) {
+            return item.username;
+          });
+          console.log("[Begin] Matching requested users and followers");
           items.forEach(item => {
-            var found = target.find(function (followers) {
-              return followers.username === item.targetUsername;
+            var found = followersMap.find(function (username) {
+              return username === item.targetUsername;
             });
+
             if (found) {
               item.changeAt = new Date();
               item.state = 'Success';
-              item.save(function (err, updateItem) {
-                console.log('Update state to Success: ' + item.targetUsername);
-                counter++;
-                if (counter === items.length) {
-                  resolve();
-                }
-              });
-            } else {
-              counter++;
-              if (counter === items.length) {
-                resolve();
-              }
+              promises.push(item.save());
             }
           });
+          console.log("[End] Matching requested users and followers");
+          if (promises) {
+            console.log("[Begin] Update state in the repository");
+            Promise.all(promises).then((item) => {
+              counter++;
+              console.log('Updated ' + counter + ' state to Success');
+              console.log("[End] Update state in the repository");
+              resolve();
+            })
+          } else {
+            resolve();
+          }
+
         } else {
           reject(err);
         }
@@ -183,128 +215,168 @@ var prepareReportByMonth = (username, month, year) => {
     after.month = 0;
     after.year = year + 1;
   }
-
   var promise = new Promise(function (resolve, reject) {
     console.log("[Begin] Preparing " + month + "/" + year);
-    UserRequest.find({
-        username: username,
-        created: {
-          $gte: new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0))
-        },
-        created: {
-          $lt: new Date(Date.UTC(after.year, (after.month - 1), 1, 0, 0, 0, 0))
-        }
-      },
-      function (err, items) {
-        let successCount = 0;
-        let timeoutCount = 0;
-        let cancelCount = 0;
-        let pendingCount = 0;
+    var perPage = 30;
 
-        if (!err) {
-          var days = [];
-          var daysInMonth = new Date(year, (month - 1), 0).getDate();
-          for (var i = 0; i < daysInMonth; i++) {
-            var fromDate = new Date(startDate.getTime());
-            fromDate.setDate(startDate.getDate() + i);
-            var toDate = new Date(startDate.getTime());
-            toDate.setDate(startDate.getDate() + (i + 1));
-            var founds = items.filter(item => {
-              if (item.state === 'Pending') {
-                return fromDate <= item.created && item.created < toDate;
-              } else {
-                return fromDate <= item.changeAt && item.changeAt < toDate;
-              }
 
-            });
+    UserRequest.count({
+      username: username
+    }).then((num) => {
+      var counter = 0;
 
-            if (founds && founds.length > 0) {
-              var day = {
-                date: fromDate,
-                success: founds
-                  .filter(item => item.state === 'Success')
-                  .map(item => {
-                    return {
-                      username: item.targetUsername
-                    };
-                  }),
-                pending: founds
-                  .filter(item => item.state === 'Pending')
-                  .map(item => {
-                    return {
-                      username: item.targetUsername
-                    };
-                  }),
-                timeout: founds
-                  .filter(item => item.state === 'Timeout')
-                  .map(item => {
-                    return {
-                      username: item.targetUsername
-                    };
-                  }),
-                cancel: founds
-                  .filter(item => item.state === 'Cancel')
-                  .map(item => {
-                    return {
-                      username: item.targetUsername
-                    };
-                  })
-              };
+      var n = parseInt(num / 30) + 1;
+      var promises = [];
 
-              successCount += day.success.length;
-              timeoutCount += day.timeout.length;
-              cancelCount += day.cancel.length;
-              pendingCount += day.pending.length;
-              days.push(day);
+
+
+      for (var i = 0; i < n; i++) {
+        var p = UserRequest.find({
+            username: username,
+            created: {
+              $gte: new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0))
+            },
+            created: {
+              $lt: new Date(Date.UTC(after.year, (after.month - 1), 1, 0, 0, 0, 0))
             }
-          }
-
-          UserRequestReport.findOne({
-            date: startDate,
-            username: username
-          }).then(item => {
-            var total = {
-              success: successCount,
-              timeout: timeoutCount,
-              pending: pendingCount,
-              cancel: cancelCount
-            };
-            if (!item) {
-              UserRequestReport.create({
-                  days: days,
-                  total: total,
-                  username: username,
-                  date: startDate
-                },
-                function (err, items) {
-                  if (!err) {
-                    console.log("[End] Preparing " + month + "/" + year);
-                    resolve(item);
-                  } else {
-                    console.log("[Failed] Preparing " + month + "/" + year);
-                    reject(err);
-                  }
-                }
-              );
-            } else {
-              item.days = days;
-              item.total = total;
-              item.save(function (err, item) {
-                console.log("[End] Preparing " + month + "/" + year);
-                resolve(item);
-              });
-            }
-          });
-        } else {
-          console.log("[Failed] Preparing " + month + "/" + year);
-          reject(err);
-        }
+          })
+          .limit(perPage)
+          .skip(perPage * i)
+          .exec();
+        promises.push(p);
       }
-    );
+
+      Promise.all(promises).then((items) => {
+        items = [].concat.apply([], items);
+        var entity = buildUserRequestReportEntity(items, username, month, year, true);
+        updateUserRequestReport(entity, username, month, year, true).then((item) => {
+          resolve(item);
+        }).catch((err) => {
+          reject(err);
+        });
+      });
+    })
+
   });
 
   return promise;
 };
+
+var buildUserRequestReportEntity = (items, username, month, year, detailEntity) => {
+  let successCount = 0;
+  let timeoutCount = 0;
+  let cancelCount = 0;
+  let pendingCount = 0;
+  var days = [];
+  var detailDays = [];
+  var startDate = new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0));
+  var daysInMonth = new Date(year, (month - 1), 0).getDate();
+  for (var i = 0; i < daysInMonth; i++) {
+    var fromDate = new Date(startDate.getTime());
+    fromDate.setDate(startDate.getDate() + i);
+    var toDate = new Date(startDate.getTime());
+    toDate.setDate(startDate.getDate() + (i + 1));
+    var founds = items.filter(item => {
+      if (item.state === 'Pending') {
+        return fromDate <= item.created && item.created < toDate;
+      } else {
+        return fromDate <= item.changeAt && item.changeAt < toDate;
+      }
+
+    });
+
+    if (founds && founds.length > 0) {
+      var detailDay = {
+        date: fromDate,
+        success: founds
+          .filter(item => item.state === 'Success')
+          .map(item => {
+            return {
+              username: item.targetUsername
+            };
+          }),
+        pending: founds
+          .filter(item => item.state === 'Pending')
+          .map(item => {
+            return {
+              username: item.targetUsername
+            };
+          }),
+        timeout: founds
+          .filter(item => item.state === 'Timeout')
+          .map(item => {
+            return {
+              username: item.targetUsername
+            };
+          }),
+        cancel: founds
+          .filter(item => item.state === 'Cancel')
+          .map(item => {
+            return {
+              username: item.targetUsername
+            };
+          })
+      };
+
+      if (!detailEntity) {
+        var day = {
+          date: fromDate,
+          success: detailDay.success.length,
+          pending: detailDay.pending.length,
+          timeout: detailDay.timeout.length,
+          cancel: detailDay.cancel.length
+        };
+        successCount += day.success;
+        timeoutCount += day.timeout;
+        cancelCount += day.cancel;
+        pendingCount += day.pending;
+        days.push(day);
+      } else {
+        successCount += detailDay.success.length;
+        timeoutCount += detailDay.timeout.length;
+        cancelCount += detailDay.cancel.length;
+        pendingCount += detailDay.pending.length;
+        detailDays.push(detailDay);
+      }
+    }
+  }
+
+  return {
+    days: days,
+    detailDays: detailDays,
+    total: {
+      success: successCount,
+      timeout: timeoutCount,
+      pending: pendingCount,
+      cancel: cancelCount
+    },
+    username: username,
+    date: startDate
+  };
+}
+
+var updateUserRequestReport = (entity, username, month, year) => {
+  var startDate = new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0));
+  var promise = new Promise(function (resolve, reject) {
+
+    UserRequestReport.remove({
+      date: startDate,
+      username: username
+    }).then((item) => {
+      return UserRequestReport.create(entity)
+    }).then((item) => {
+      console.log("[End] Preparing " + month + "/" + year);
+      resolve(item);
+    }).catch((err) => {
+      console.log("[Failed] Preparing " + month + "/" + year);
+      reject(err);
+    });
+  });
+
+
+
+  return promise;
+}
 
 var prepareReport = username => {
   targetUsername = username;

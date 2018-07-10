@@ -180,14 +180,18 @@ const setUserConfig = (username) => {
         trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
       });
 
-      getUserInfo(currentLoginUser).then(function (info) {
+      getUserInfo(currentLoginUser, env !== 'dev').then(function (info) {
         userInfo = {
           currentUserInfo: info
         };
 
         if (userInfo && userInfo.currentUserInfo && userInfo.currentUserInfo.followers) {
           console.log('[Begin] Updating user requested.');
-          updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers).then(() => {
+          reset().then(() => {
+              return updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers);
+            })
+            //updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers)
+            .then(() => {
               console.log('[End] Updating user requested.');
               console.log('[Begin] Generating report user request data.');
               return prepareReport(currentLoginUser.username);
@@ -445,7 +449,7 @@ const start = loginUser => {
                                 pause = false;
                                 isLoading = false;
                               });
-                            } else if (e.name === "no relationship") {
+                            } else if (e.message === "no relationship") {
                               trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             } else {
                               trace(e);
@@ -1057,7 +1061,7 @@ const getUserInfo = (loginUser, forceGetAllFollowers) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, false, forceGetAllFollowers)];
+        return [data, getFollowers(data.currentUser, data.followerCount, env === 'dev', forceGetAllFollowers)];
       })
       .spread(function (data, followers) {
         trace('[OK]');
@@ -1089,7 +1093,10 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
           fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
           resolve(feedsDone);
         } else {
-          printPercent(counter / followerCount * 100.0);
+          if (env === 'dev') {
+            printPercent(counter / followerCount * 100.0);
+          }
+
           if (getMore) {
             getMore = false;
             accountFollowers.get().then(function (results) {
@@ -1119,7 +1126,7 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
             });
           }
         }
-      }, 1000);
+      }, 100);
     } else {
       trace('Getting followers from CACHE')
       var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
