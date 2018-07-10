@@ -519,13 +519,13 @@ const removeUsers = () => {
 
     if (isActivityPeriod() && !forze) {
       clearInterval(loopPointer);
-      start(loginUser);
+      start(currentLoginUser);
     } else {
       if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
-        updateKeyUsers(loginUser.username).then((object) => {
-          setUserConfig(loginUser.username);
+        updateKeyUsers(currentLoginUser.username).then((object) => {
+          setUserConfig(currentLoginUser.username);
         }).catch((e) => {
-          setUserConfig(loginUser.username);
+          setUserConfig(currentLoginUser.username);
         });
       }
 
