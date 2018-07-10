@@ -1,0 +1,23 @@
+[02:16:08.769] [ERROR] { Error: Dropbox file not found
+    at /Users/roberto/Source/insup1/insup/up.js:1333:19
+    at Promise._execute (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/debuggability.js:303:9)
+    at Promise._resolveFromExecutor (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:483:18)
+    at new Promise (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:79:10)
+    at readExcel (/Users/roberto/Source/insup1/insup/up.js:1332:17)
+    at /Users/roberto/Source/insup1/insup/up.js:1284:5
+    at Promise._execute (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/debuggability.js:303:9)
+    at Promise._resolveFromExecutor (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:483:18)
+    at new Promise (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:79:10)
+    at updateKeyUsers (/Users/roberto/Source/insup1/insup/up.js:1283:17)
+    at /Users/roberto/Source/insup1/insup/up.js:492:5
+    at Promise._execute (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/debuggability.js:303:9)
+    at Promise._resolveFromExecutor (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:483:18)
+    at new Promise (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:79:10)
+    at removeNotFollowers (/Users/roberto/Source/insup1/insup/up.js:491:17)
+    at start (/Users/roberto/Source/insup1/insup/up.js:335:12)
+    at login.then (/Users/roberto/Source/insup1/insup/instagram.js:83:7)
+    at tryCatcher (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/util.js:16:23)
+    at Promise._settlePromiseFromHandler (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:512:31)
+    at Promise._settlePromise (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:569:18)
+    at Promise._settlePromise0 (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:614:10)
+    at Promise._settlePromises (/Users/roberto/Source/insup1/insup/node_modules/bluebird/js/release/promise.js:693:18) message: 'Dropbox file not found' }

@@ -360,7 +360,9 @@ const start = loginUser => {
 
         if (!isActivityPeriod()) {
           clearInterval(loopPointer);
-          removeNotFollowers(loginUser);
+          removeNotFollowers(loginUser).then((data) => {
+            return null;
+          });
         } else {
           if (loopCounter % loadConfigurationUpdateFrecuencySeconds === 0) {
             setUserConfig(loginUser.username);
@@ -486,7 +488,7 @@ const start = loginUser => {
 const removeNotFollowers = (loginUser, forze) => {
   currentLoginUser = loginUser;
   setDevice(currentLoginUser.username);
-  var promise = new Promise(function (resolve) {
+  var promise = new Promise(function (resolve, reject) {
     updateKeyUsers(loginUser.username).then((object) => {
       var users = userInfo.currentUserInfo.followings;
       if (users.length === 0) {
@@ -589,6 +591,8 @@ const removeNotFollowers = (loginUser, forze) => {
       }
       loop();
       var loopPointer = setInterval(loop, 1000);
+    }).catch((e) => {
+      reject(e);
     });
   });
 
