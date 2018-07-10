@@ -17,7 +17,8 @@ var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSb
 const {
   addUserRequest,
   updateUserRequest,
-  prepareReport
+  prepareReport,
+  reset
 } = require('./stats');
 
 Date.prototype.addHours = function (h) {
@@ -184,9 +185,11 @@ const setUserConfig = (username) => {
           currentUserInfo: info
         };
 
-        if (userInfo && userInfo.currentUserInfo && userInfo.currentUserInfo.followings) {
+        if (userInfo && userInfo.currentUserInfo && userInfo.currentUserInfo.followers) {
           console.log('[Begin] Updating user requested.');
-          updateUserRequest(userInfo.currentUserInfo.followings).then(() => {
+          reset().then(() => {
+              return updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers);
+            }).then(() => {
               console.log('[End] Updating user requested.');
               console.log('[Begin] Generating report user request data.');
               return prepareReport(currentLoginUser.username);
@@ -1139,6 +1142,7 @@ const getFollowing = user => {
       var feeds = _.map(data, function (feed) {
         return feed._params;
       });
+
       resolve(feeds);
     });
   });

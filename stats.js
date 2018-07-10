@@ -35,22 +35,60 @@ var userSchema = new mongoose.Schema({
   username: String
 });
 
+var totalSchema = new mongoose.Schema({
+  success: Number,
+  timeout: Number,
+  cancel: Number,
+  pending: Number,
+});
 var daySchema = new mongoose.Schema({
   date: Date,
-  username: String,
   success: [userSchema],
   timeout: [userSchema],
   cancel: [userSchema],
-  pending: [
-    [userSchema]
-  ]
+  pending: [userSchema]
+
 });
 
 var UserRequestReport = mongoose.model('UserRequestReport', {
   username: String,
   date: Date,
+  total: totalSchema,
   days: [daySchema]
 });
+
+
+var reset = (username, targetUsername) => {
+  return new Promise(function (resolve, reject) {
+    UserRequest.find({},
+      function (err, items) {
+        if (!err) {
+          var count = 0;
+
+          items.forEach((item) => {
+            if (item.changeAt) {
+              item.changeAt = undefined;
+            }
+
+            item.state = 'Pending';
+            item.save(() => {
+              console.log(count)
+              count++;
+              if (count + 1 === items.length) {
+                resolve();
+              }
+            });
+
+          });
+
+
+        } else {
+          reject(err);
+        }
+      }
+    );
+  });
+};
 
 var addUserRequest = (username, targetUsername) => {
   return new Promise(function (resolve, reject) {
@@ -70,14 +108,15 @@ var addUserRequest = (username, targetUsername) => {
     );
   });
 };
-var updateUserRequest = followings => {
-  target = followings;
+var updateUserRequest = (username, followers) => {
+  target = followers;
   var promiseFn = (resolve, reject) => {
     var date = new Date();
     date.setDate(date.getDate() - 7);
     var counter = 0;
     UserRequest.find({
         state: 'Pending',
+        username: username,
         created: {
           $gte: date
         }
@@ -85,8 +124,8 @@ var updateUserRequest = followings => {
       function (err, items) {
         if (!err) {
           items.forEach(item => {
-            var found = target.find(function (following) {
-              return following.username === item.targetUsername;
+            var found = target.find(function (followers) {
+              return followers.username === item.targetUsername;
             });
             if (found) {
               item.changeAt = new Date();
@@ -112,6 +151,7 @@ var updateUserRequest = followings => {
     );
     UserRequest.find({
         state: 'Pending',
+        username: username,
         created: {
           $lt: date
         }
@@ -155,6 +195,11 @@ var prepareReportByMonth = (username, month, year) => {
         }
       },
       function (err, items) {
+        let successCount = 0;
+        let timeoutCount = 0;
+        let cancelCount = 0;
+        let pendingCount = 0;
+
         if (!err) {
           var days = [];
           var daysInMonth = new Date(year, (month - 1), 0).getDate();
@@ -164,12 +209,16 @@ var prepareReportByMonth = (username, month, year) => {
             var toDate = new Date(startDate.getTime());
             toDate.setDate(startDate.getDate() + (i + 1));
             var founds = items.filter(item => {
-              return fromDate <= item.created && item.created < toDate;
+              if (item.state === 'Pending') {
+                return fromDate <= item.created && item.created < toDate;
+              } else {
+                return fromDate <= item.changeAt && item.changeAt < toDate;
+              }
+
             });
 
             if (founds && founds.length > 0) {
-              var success = founds.filter(item => item.state === 'Success');
-              days.push({
+              var day = {
                 date: fromDate,
                 success: founds
                   .filter(item => item.state === 'Success')
@@ -199,7 +248,13 @@ var prepareReportByMonth = (username, month, year) => {
                       username: item.targetUsername
                     };
                   })
-              });
+              };
+
+              successCount += day.success.length;
+              timeoutCount += day.timeout.length;
+              cancelCount += day.cancel.length;
+              pendingCount += day.pending.length;
+              days.push(day);
             }
           }
 
@@ -207,9 +262,16 @@ var prepareReportByMonth = (username, month, year) => {
             date: startDate,
             username: username
           }).then(item => {
+            var total = {
+              success: successCount,
+              timeout: timeoutCount,
+              pending: pendingCount,
+              cancel: cancelCount
+            };
             if (!item) {
               UserRequestReport.create({
                   days: days,
+                  total: total,
                   username: username,
                   date: startDate
                 },
@@ -223,6 +285,7 @@ var prepareReportByMonth = (username, month, year) => {
               );
             } else {
               item.days = days;
+              item.total = total;
               item.save(function (err, item) {
                 resolve(item);
               });
@@ -252,12 +315,10 @@ var prepareReport = username => {
       before.month = 11;
       before.year = year - 1;
     }
-
-    Promise.all([
-      prepareReportByMonth(targetUsername, before.month, before.year),
-      prepareReportByMonth(targetUsername, month, year)
-    ]).then(values => {
-      resolve(values);
+    prepareReportByMonth(targetUsername, before.month, before.year).then((data1) => {
+      prepareReportByMonth(targetUsername, month, year).then((data2) => {
+        resolve([data1, data2]);
+      })
     });
   });
 
@@ -267,5 +328,6 @@ var prepareReport = username => {
 module.exports = {
   addUserRequest,
   updateUserRequest,
-  prepareReport
+  prepareReport,
+  reset
 };
