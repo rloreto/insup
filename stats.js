@@ -278,9 +278,10 @@ var prepareReportByMonth = (username, month, year) => {
                 },
                 function (err, items) {
                   if (!err) {
-                    resolve(item);
                     console.log("[End] Preparing " + month + "/" + year);
+                    resolve(item);
                   } else {
+                    console.log("[Failed] Preparing " + month + "/" + year);
                     reject(err);
                   }
                 }
