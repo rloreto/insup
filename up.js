@@ -190,10 +190,11 @@ const setUserConfig = (username) => {
           updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers).then(() => {
               console.log('[End] Updating user requested.');
               console.log('[Begin] Generating report user request data.');
+              resolve(config);
               return prepareReport(currentLoginUser.username);
             })
             .then((data) => {
-              resolve(config);
+
               console.log('[End] Generating report user request data.');
             })
         }

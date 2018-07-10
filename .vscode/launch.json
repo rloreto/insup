@@ -28,6 +28,16 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "quierobesarte",
+      "program": "${workspaceFolder}/instagram.js",
+      "args": ["-s", "'quierobesarte.es'", "'Por.][121t'"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "efectoniepce",
       "program": "${workspaceFolder}/instagram.js",
       "args": ["-s", "'efectoniepce'", "'nacandfeez'"],
