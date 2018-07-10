@@ -18,6 +18,16 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "videodebodainfo",
+      "program": "${workspaceFolder}/instagram.js",
+      "args": ["-s", "'videosdeboda.info'", "'Por.][120pPor.][120p'"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "efectoniepce",
       "program": "${workspaceFolder}/instagram.js",
       "args": ["-s", "'efectoniepce'", "'nacandfeez'"],

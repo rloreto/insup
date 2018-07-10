@@ -445,6 +445,8 @@ const start = loginUser => {
                                 pause = false;
                                 isLoading = false;
                               });
+                            } else if (e.name === "no relationship") {
+                              trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             } else {
                               trace(e);
                             }
