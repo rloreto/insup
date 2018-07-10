@@ -319,11 +319,20 @@ var prepareReport = username => {
       before.month = 11;
       before.year = year - 1;
     }
+    var prepareData1, prepareData2;
     prepareReportByMonth(targetUsername, before.month, before.year).then((data1) => {
-      return prepareReportByMonth(targetUsername, month, year).then((data2) => {
+      prepareData1 = data1;
+      if (prepareData1 && prepareData2) {
         resolve([data1, data2]);
-      })
+      }
     });
+
+    prepareReportByMonth(targetUsername, month, year).then((data2) => {
+      prepareData1 = data1;
+      if (prepareData1 && prepareData2) {
+        resolve([data1, data2]);
+      }
+    })
   });
 
   return promise;
