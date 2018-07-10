@@ -44,6 +44,15 @@
       "restart": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"
+    }, {
+      "type": "node",
+      "request": "launch",
+      "name": "nachodelriobodas",
+      "program": "${workspaceFolder}/instagram.js",
+      "args": ["-s", "'nachodelriobodas'", "'nacandfeez'"],
+      "restart": true,
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
     }
   ]
 }

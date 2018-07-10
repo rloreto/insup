@@ -134,10 +134,13 @@ var addUserRequest = (username, targetUsername) => {
 };
 var updateUserRequest = (username, followers) => {
   target = followers;
+  pendingProcesed = false;
+  timeoutPorcesed = false;
   var promiseFn = (resolve, reject) => {
     var date = new Date();
     date.setDate(date.getDate() - 7);
     var counter = 0;
+
     UserRequest.find({
         state: 'Pending',
         username: username,
@@ -158,6 +161,7 @@ var updateUserRequest = (username, followers) => {
             });
 
             if (found) {
+              counter++;
               item.changeAt = new Date();
               item.state = 'Success';
               promises.push(item.save());
@@ -166,14 +170,16 @@ var updateUserRequest = (username, followers) => {
           console.log("[End] Matching requested users and followers");
           if (promises) {
             console.log("[Begin] Update state in the repository");
-            Promise.all(promises).then((item) => {
-              counter++;
+            return Promise.all(promises).then((item) => {
+
               console.log('Updated ' + counter + ' state to Success');
               console.log("[End] Update state in the repository");
-              resolve();
+              pendingProcesed = true;
+              resolveFn(resolve);
             })
           } else {
-            resolve();
+            pendingProcesed = true;
+            resolveFn(resolve);
           }
 
         } else {
@@ -195,13 +201,21 @@ var updateUserRequest = (username, followers) => {
             item.state = 'Timeout';
             item.save();
           });
-          resolve();
+          timeoutPorcesed = true;
+          resolveFn(resolve);
         } else {
           reject(err);
         }
       }
     );
   };
+
+  var resolveFn = (resolve) => {
+    if (resolve && pendingProcesed && timeoutPorcesed) {
+      resolve();
+    }
+  }
+
   return new Promise(promiseFn);
 };
 
@@ -246,10 +260,10 @@ var prepareReportByMonth = (username, month, year) => {
         promises.push(p);
       }
 
-      Promise.all(promises).then((items) => {
+      return Promise.all(promises).then((items) => {
         items = [].concat.apply([], items);
         var entity = buildUserRequestReportEntity(items, username, month, year, true);
-        updateUserRequestReport(entity, username, month, year, true).then((item) => {
+        return updateUserRequestReport(entity, username, month, year, true).then((item) => {
           resolve(item);
         }).catch((err) => {
           reject(err);
@@ -393,7 +407,7 @@ var prepareReport = username => {
       before.year = year - 1;
     }
 
-    Promise.all([
+    return Promise.all([
       prepareReportByMonth(targetUsername, before.month, before.year),
       prepareReportByMonth(targetUsername, month, year)
     ]).then((values) => {
