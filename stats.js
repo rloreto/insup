@@ -174,7 +174,6 @@ var updateUserRequest = (username, followers) => {
 
               console.log('Updated ' + counter + ' state to Success');
               console.log("[End] Update state in the repository");
-              pendingProcesed = true;
               resolveFn(resolve);
             })
           } else {
@@ -332,24 +331,20 @@ var buildUserRequestReportEntity = (items, username, month, year, detailEntity) 
           })
       };
 
-      if (!detailEntity) {
-        var day = {
-          date: fromDate,
-          success: detailDay.success.length,
-          pending: detailDay.pending.length,
-          timeout: detailDay.timeout.length,
-          cancel: detailDay.cancel.length
-        };
-        successCount += day.success;
-        timeoutCount += day.timeout;
-        cancelCount += day.cancel;
-        pendingCount += day.pending;
-        days.push(day);
-      } else {
-        successCount += detailDay.success.length;
-        timeoutCount += detailDay.timeout.length;
-        cancelCount += detailDay.cancel.length;
-        pendingCount += detailDay.pending.length;
+      var day = {
+        date: fromDate,
+        success: detailDay.success.length,
+        pending: detailDay.pending.length,
+        timeout: detailDay.timeout.length,
+        cancel: detailDay.cancel.length
+      };
+      successCount += day.success;
+      timeoutCount += day.timeout;
+      cancelCount += day.cancel;
+      pendingCount += day.pending;
+      days.push(day);
+
+      if (detailEntity) {
         detailDays.push(detailDay);
       }
     }
