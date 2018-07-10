@@ -185,8 +185,9 @@ var prepareReportByMonth = (username, month, year) => {
   }
 
   var promise = new Promise(function (resolve, reject) {
+    console.log("[Begin] Preparong " + month + "/" + year);
     UserRequest.find({
-        username: targetUsername,
+        username: username,
         created: {
           $gte: new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0))
         },
@@ -278,6 +279,7 @@ var prepareReportByMonth = (username, month, year) => {
                 function (err, items) {
                   if (!err) {
                     resolve(item);
+                    console.log("[End] Preparong " + month + "/" + year);
                   } else {
                     reject(err);
                   }
@@ -288,6 +290,7 @@ var prepareReportByMonth = (username, month, year) => {
               item.total = total;
               item.save(function (err, item) {
                 resolve(item);
+                console.log("[End] Preparong " + month + "/" + year);
               });
             }
           });
