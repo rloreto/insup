@@ -171,9 +171,9 @@ var updateUserRequest = (username, followers) => {
           if (promises) {
             console.log("[Begin] Update state in the repository");
             return Promise.all(promises).then((item) => {
-
               console.log('Updated ' + counter + ' state to Success');
               console.log("[End] Update state in the repository");
+              pendingProcesed = true;
               resolveFn(resolve);
             })
           } else {
