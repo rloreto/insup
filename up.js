@@ -187,9 +187,7 @@ const setUserConfig = (username) => {
 
         if (userInfo && userInfo.currentUserInfo && userInfo.currentUserInfo.followers) {
           console.log('[Begin] Updating user requested.');
-          reset().then(() => {
-              return updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers);
-            }).then(() => {
+          updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers).then(() => {
               console.log('[End] Updating user requested.');
               console.log('[Begin] Generating report user request data.');
               return prepareReport(currentLoginUser.username);
