@@ -23,8 +23,8 @@ require('dotenv').load();
 
 program.version('0.0.1').description('Instagram upper');
 
-var promntLogin = function(callback) {
-  program.prompt('user: (default: quierobesarte.es) ', function(user) {
+var promntLogin = function (callback) {
+  program.prompt('user: (default: quierobesarte.es) ', function (user) {
     var typedUser;
     var typedPassword;
     if (!user) {
@@ -33,7 +33,7 @@ var promntLogin = function(callback) {
       callback(typedUser, typedPassword);
     } else {
       typedUser = user;
-      program.password('Password: ', '*', function(password) {
+      program.password('Password: ', '*', function (password) {
         callback(typedUser, password);
         process.stdin.destroy();
       });
@@ -41,19 +41,19 @@ var promntLogin = function(callback) {
   });
 };
 
-var startWitLogin = function() {
-  promntLogin(function(user, password) {
+var startWitLogin = function () {
+  promntLogin(function (user, password) {
     login(user, password);
-    start().then(function() {
+    start().then(function () {
       process.exit();
     });
   });
 };
 
-var removeWitLogin = function() {
-  promntLogin(function(user, password) {
+var removeWitLogin = function () {
+  promntLogin(function (user, password) {
     login(user, password);
-    removeNotFollowers().then(function() {
+    removeNotFollowers().then(function () {
       process.exit();
     });
   });
@@ -79,11 +79,10 @@ if (
   var username = process.env.USER_INSTAGRAM || program.args[0];
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
   if (username && pwd) {
-    login(username, pwd).then(()=>{
-      start({ username: username, password: pwd }).then(function() {
-        process.exit();
-      }).catch((e)=>{
-        logger.error(e);
+    login(username, pwd).then(() => {
+      start({
+        username: username,
+        password: pwd
       });
     });
   } else {
@@ -94,21 +93,21 @@ if (
 
 if (program.updateKeyUsers && !program.remove && !program.update) {
 
-  if(program.rawArgs.length <4) {
+  if (program.rawArgs.length < 4) {
     throw "The csv file and targetUserName parameters are requited.";
   }
   var targetUsername = program.rawArgs[3];
 
 
 
-  if(!targetUsername) {
+  if (!targetUsername) {
     throw "The targetUserName is requidred";
     process.exit();
   }
 
-  updateKeyUsers(targetUsername).then(function() {
+  updateKeyUsers(targetUsername).then(function () {
     process.exit();
-  }).catch((e)=>{
+  }).catch((e) => {
     logger.error(e);
   });
 
@@ -119,16 +118,13 @@ if (program.remove && !program.update) {
   var pwd = process.env.PWD_INSTAGRAM || program.args[1];
 
   if (username && pwd) {
-    login(username, pwd).then(()=>{
-      removeNotFollowers({ username: username, password: pwd }, true).then(function() {
-        console.log("done");
-        process.exit();
-      }).catch((e)=>{
-        debugger;
-        logger.error(e);
-      });
+    login(username, pwd).then(() => {
+      removeNotFollowers({
+        username: username,
+        password: pwd
+      }, true);
     });
-    
+
   } else {
     removeWitLogin();
   }
@@ -141,32 +137,37 @@ if (program.update && !program.remove) {
   var segment = '';
   var targetUserName = '';
 
-  program.rawArgs.forEach((item)=>{
-    if(item === '--force') {
+  program.rawArgs.forEach((item) => {
+    if (item === '--force') {
       force = true;
     }
-    if(item.indexOf('--segment')>=0) {
+    if (item.indexOf('--segment') >= 0) {
       segment = item.split('=')[1];
     }
 
-    if(item.indexOf('--targetUserName')>=0) {
+    if (item.indexOf('--targetUserName') >= 0) {
       targetUserName = item.split('=')[1];
     }
   })
   if (username && pwd) {
-    login(username, pwd).then(()=>{
+    login(username, pwd).then(() => {
       debugger;
-      updateTargetFollowers(
-        { username: username, password: pwd, targetUserName, force, segment  },
+      updateTargetFollowers({
+          username: username,
+          password: pwd,
+          targetUserName,
+          force,
+          segment
+        },
         program.args[0],
         force
-      ).then(function() {
+      ).then(function () {
         process.exit();
-      }).catch((e)=>{
+      }).catch((e) => {
         logger.error(e);
       });
     });
   } else {
-    updateTargetFollowersWitLogin(program.args[0],force);
+    updateTargetFollowersWitLogin(program.args[0], force);
   }
 }
