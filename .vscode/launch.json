@@ -20,7 +20,7 @@
       "request": "launch",
       "name": "videodebodainfo",
       "program": "${workspaceFolder}/instagram.js",
-      "args": ["-s", "'videosdeboda.info'", "'Por.][120pPor.][120p'"],
+      "args": ["-s", "'videosdeboda.info'", "'Por.][121t'"],
       "restart": true,
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen"

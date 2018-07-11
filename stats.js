@@ -67,9 +67,11 @@ var UserRequestReport = mongoose.model('UserRequestReport', {
 });
 
 
-var reset = (username, targetUsername) => {
+var reset = (username) => {
   return new Promise(function (resolve, reject) {
-    UserRequest.find({},
+    UserRequest.find({
+        username: username
+      },
       function (err, items) {
         if (!err) {
           var count = 0;
@@ -162,6 +164,7 @@ var updateUserRequest = (username, followers) => {
 
             if (found) {
               counter++;
+              //item.changeAt = item.created; 
               item.changeAt = new Date();
               item.state = 'Success';
               promises.push(item.save());

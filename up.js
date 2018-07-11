@@ -187,9 +187,9 @@ const setUserConfig = (username) => {
 
         if (userInfo && userInfo.currentUserInfo && userInfo.currentUserInfo.followers) {
           console.log('[Begin] Updating user requested.');
-          /*reset().then(() => {
-            return updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers);
-          })*/
+          //reset(currentLoginUser.username).then(() => {
+          //return updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers);
+          //})
           updateUserRequest(currentLoginUser.username, userInfo.currentUserInfo.followers)
             .then(() => {
               console.log('[End] Updating user requested.');
@@ -1038,7 +1038,7 @@ const getUserInfoByUserName = (loginUser, username) => {
 };
 
 
-const getUserInfo = (loginUser, forceGetAllFollowers) => {
+const getUserInfo = (loginUser, useCacheData) => {
   var promise = new Promise(function (resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
       .then(function (session) {
@@ -1061,7 +1061,7 @@ const getUserInfo = (loginUser, forceGetAllFollowers) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, env === 'dev', forceGetAllFollowers)];
+        return [data, getFollowers(data.currentUser, data.followerCount, false, useCacheData)];
       })
       .spread(function (data, followers) {
         trace('[OK]');
@@ -1072,7 +1072,7 @@ const getUserInfo = (loginUser, forceGetAllFollowers) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers, force) => {
+const getFollowers = (user, followerCount, saveUsers, useCacheData) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
@@ -1084,7 +1084,7 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
   var cacheFile = './tmp/' + user.name + '_followers.json';
 
   var promise = new Promise(function (resolve) {
-    if (!fs.existsSync(cacheFile) || force) {
+    if (!fs.existsSync(cacheFile) || useCacheData) {
       trace('Getting followers from live. NO CACHE');
       var timeoutObj = setInterval(function () {
         if (counter > followerCount) {
@@ -1106,9 +1106,7 @@ const getFollowers = (user, followerCount, saveUsers, force) => {
                   return feed._params;
                 });
                 if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id).then(function (
-                    followers
-                  ) {
+                  saveUpdateFollowers(page, followers, user.id).then(function (followers) {
                     Array.prototype.push.apply(feedsDone, followers);
                     getMore = true;
                     counter += followers.length;
@@ -1226,12 +1224,16 @@ const saveUpdateFollowers = (page, feeds, providerId) => {
                 segment: segment,
                 username: username,
                 attempts: [],
-                info: []
+                info: [{
+                  un: currentLoginUser.username,
+                  isFollower: true
+                }]
               };
               isNew = true;
             }
 
-            if (!isNew && !getInfo(user, currentLoginUser.username, 'isFollower')) {
+            var isFollower = getInfo(user, currentLoginUser.username, 'isFollower');
+            if (!isNew && !isFollower) {
               setInfo(user, currentLoginUser.username, 'isFollower', true);
             }
             if (isNew) {
