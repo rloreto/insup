@@ -14,6 +14,7 @@ var segments;
 var logger;
 var userInfo;
 var dropboxAccessToken = 'lX12IoOo7ewAAAAAAACBhOHAvV1Y65p8mV_MTyLF4q-LZu7_1zjrSbXmZEH_J34v';
+const pendingDays = 7;
 const {
   addUserRequest,
   updateUserRequest,
@@ -44,58 +45,16 @@ const {
 if (!fs.existsSync('./tmp/')) {
   fs.mkdirSync('./tmp/');
 }
+UserBase = require('./models/instagram').UserBase;
+User = require('./models/instagram').User;
+KeyUser = require('./models/instagram').KeyUser;
+UserDayFollwerKey = require('./models/instagram').UserDayFollwerKey;
 
-var Mongoose = require('mongoose').Mongoose;
-var mongoose = new Mongoose();
+var device, storage;
+var Client = require('instagram-private-api').V1;
 
-var user_mongo = process.env.USER_MONGO;
-var pwd_mongo = process.env.PWD_MONGO;
-
-
-mongoose.connect(
-  'mongodb://' +
-  user_mongo +
-  ':' +
-  pwd_mongo +
-  '@ds123695.mlab.com:23695/instagram', {
-    useMongoClient: true
-  }
-);
-mongoose.Promise = Promise;
-var db = mongoose.connection;
-
-
-var UserBase = mongoose.model('UserBase', {
-  segment: String,
-  username: String,
-  attempts: [],
-  info: []
-});
-
-var User = mongoose.model('User', {
-  username: String,
-  maxOperationsPerHour: Number,
-  maxRemoveOperationsPerHour: Number,
-  attemstartHourpts: Number,
-  startHour: Number,
-  activityHours: Number,
-  maxGetUsers: Number,
-  onlyPublic: Boolean,
-  maxConsecutiveCreateOperations: Number,
-  maxConsecutiveRemoveOperations: Number,
-  waitBetweenOperationMinutes: Number,
-  loadConfigurationUpdateFrecuencyMinutes: Number,
-  segments: []
-});
-
-var KeyUser = mongoose.model('KeyUser', {
-  userId: String,
-  username: String
-});
 
 var progressCounter = 0;
-
-
 
 const trace = (str, type) => {
   type = type || 'log';
@@ -119,12 +78,8 @@ const trace = (str, type) => {
   }
 
 }
-
 const setUserConfig = (username) => {
-
-
-
-  var promise = new Promise(function (resolve, reject) {
+  return new Promise(function (resolve, reject) {
     trace("Load configuration of user: " + username);
     User.findOne({
       username: username
@@ -206,10 +161,7 @@ const setUserConfig = (username) => {
 
     })
   });
-
-  return promise;
 }
-
 const login = (userId, password) => {
   currentLoginUser = {
     username: userId,
@@ -231,7 +183,7 @@ const login = (userId, password) => {
   const output = fs.createWriteStream('./logs/' + userId.replace('.', '_') + '/out.log');
   const errorOutput = fs.createWriteStream('./logs/' + userId.replace('.', '_') + '/err.log');
   logger = new console.Console(output, errorOutput);
-  db.on('error', logger.error.bind(logger, 'connection error:'));
+
 
   console_stamp(logger, {
     stdout: output,
@@ -250,9 +202,6 @@ const login = (userId, password) => {
   return promise;
 
 };
-
-var device, storage;
-var Client = require('instagram-private-api').V1;
 
 const setDevice = (username) => {
   device = new Client.Device(username);
@@ -321,8 +270,6 @@ const updateTargetFollowers = (obj) => {
 
   return promise;
 };
-
-
 
 const isActivityPeriod = () => {
   var now = new Date();
@@ -1061,7 +1008,7 @@ const getUserInfo = (loginUser, useCacheData) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, false, useCacheData)];
+        return [data, getFollowers(data.currentUser, data.followerCount, false, useCacheData, true)];
       })
       .spread(function (data, followers) {
         trace('[OK]');
@@ -1072,13 +1019,28 @@ const getUserInfo = (loginUser, useCacheData) => {
   return promise;
 };
 
-const getFollowers = (user, followerCount, saveUsers, useCacheData) => {
+const containsAnyKeyFollower = (partiaFollowers, keyFollowers) => {
+  var found;
+  for (i = 0; i < keyFollowers.length; i++) {
+    var keyFollower = keyFollowers[i];
+    for (j = 0; j < partiaFollowers.length; j++) {
+      var currentFollower = partiaFollowers[j];
+      if (currentFollower === keyFollower) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFollowers) => {
   var accountFollowers = new Client.Feed.AccountFollowers(
     user.currentSession,
     user.id
   );
   var page = 1;
   var getMore = true;
+  var dayFollowers = false;
   var counter = 0;
   var feedsDone = [];
   var cacheFile = './tmp/' + user.name + '_followers.json';
@@ -1086,45 +1048,67 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData) => {
   var promise = new Promise(function (resolve) {
     if (!fs.existsSync(cacheFile) || useCacheData) {
       trace('Getting followers from live. NO CACHE');
-      var timeoutObj = setInterval(function () {
-        if (counter > followerCount) {
-          clearInterval(timeoutObj);
-          printPercent(100);
-          fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
-          resolve(feedsDone);
-        } else {
-          if (env === 'dev') {
-            printPercent(counter / followerCount * 100.0);
-          }
+      getDayFollowers(true).then((keyFollowers) => {
+        var lightMode = (keyFollowers && keyFollowers.length > 0) && useLightFollowers;
+        var timeoutObj = setInterval(function () {
+          if (counter > followerCount) {
+            clearInterval(timeoutObj);
+            printPercent(100);
+            fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
+            resolve(feedsDone);
+          } else {
+            if (env === 'dev') {
+              printPercent(counter / followerCount * 100.0);
+            }
 
-          if (getMore) {
-            getMore = false;
-            accountFollowers.get().then(function (results) {
-              if (results && results.length > 0) {
-                var data = _.flattenDeep(results);
-                var followers = _.map(data, function (feed) {
-                  return feed._params;
-                });
-                if (saveUsers) {
-                  saveUpdateFollowers(page, followers, user.id).then(function (followers) {
-                    Array.prototype.push.apply(feedsDone, followers);
-                    getMore = true;
-                    counter += followers.length;
-                    page++;
+            if (getMore) {
+              getMore = false;
+
+              accountFollowers.get().then(function (results) {
+                if (results && results.length > 0) {
+                  var data = _.flattenDeep(results);
+                  var followers = _.map(data, function (feed) {
+                    return feed._params;
                   });
+                  var contains = false;
+                  if (lightMode) {
+                    contains = containsAnyKeyFollower(followers.map((f) => f.username), keyFollowers);
+                  }
+
+                  if (!contains) {
+
+                    if (!dayFollowers) {
+                      setDayFollowers(followers);
+                      dayFollowers = true;
+                    }
+
+                    if (saveUsers) {
+                      saveUpdateFollowers(page, followers, user.id).then(function (followers) {
+                        Array.prototype.push.apply(feedsDone, followers);
+                        getMore = true;
+                        counter += followers.length;
+                        page++;
+                      });
+                    } else {
+                      Array.prototype.push.apply(feedsDone, followers);
+                      getMore = true;
+                      counter += followers.length;
+                      page++;
+                    }
+                  } else {
+                    getMore = false;
+                    counter = followerCount + 1;
+                  }
+
                 } else {
-                  Array.prototype.push.apply(feedsDone, followers);
-                  getMore = true;
-                  counter += followers.length;
-                  page++;
+                  counter = followerCount + 1;
                 }
-              } else {
-                counter = followerCount + 1;
-              }
-            });
+              });
+            }
           }
-        }
-      }, 100);
+        }, 100);
+      });
+
     } else {
       trace('Getting followers from CACHE')
       var feeds = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
@@ -1195,7 +1179,7 @@ const getUserStatus = function () {
   });
 
   return promise;
-}
+};
 
 const saveUpdateFollowers = (page, feeds, providerId) => {
 
@@ -1285,12 +1269,41 @@ const createFile = filename => {
   });
 };
 
-const printPercent = (number, post) => {
-  if (!post) {
-    post = '';
-  }
-  trace(number + '% ' + post);
+const setDayFollowers = (lastFollowers) => {
+  var date = new Date();
+  var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
+  getDayFollowers().then((followers) => {
+    if (!followers) {
+      UserDayFollwerKey.create({
+        date: utcDate,
+        keyFollowers: lastFollowers.map((f) => f.username).reverse()
+      })
+    }
+  })
 };
+
+const getDayFollowers = (last) => {
+  return new Promise(function (resolve, reject) {
+    var date = new Date();
+    var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
+    if (last) {
+      utcDate.setDate(utcDate.getDate() - pendingDays);
+    }
+    UserDayFollwerKey.findOne({
+      date: utcDate
+    }).then((response) => {
+      if (response && response.keyFollowers) {
+        resolve(response.keyFollowers)
+      } else {
+        resolve()
+      }
+
+    }).catch((err) => {
+      reject(err);
+    })
+  });
+};
+
 
 
 const updateKeyUsers = (targetUsername) => {
@@ -1399,6 +1412,13 @@ const readExcel = (username) => {
       });
   });
   return promise;
+};
+
+const printPercent = (number, post) => {
+  if (!post) {
+    post = '';
+  }
+  trace(number + '% ' + post);
 };
 
 module.exports = {

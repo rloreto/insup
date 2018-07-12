@@ -1,71 +1,10 @@
 var process = require('process');
 require('dotenv').load();
-var Mongoose = require('mongoose').Mongoose;
-var mongoose = new Mongoose();
 var Promise = require('bluebird');
 
-var user_mongo = process.env.USER_MONGO;
-var pwd_mongo = process.env.PWD_MONGO;
-
-mongoose.connect(
-  'mongodb://' +
-  user_mongo +
-  ':' +
-  pwd_mongo +
-  '@ds129321.mlab.com:29321/instagram-stats', {
-    useMongoClient: true
-  }
-);
-mongoose.Promise = Promise;
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-
-var UserRequest = mongoose.model('UserRequest', {
-  username: String,
-  targetUsername: String,
-  created: Date,
-  state: {
-    type: String,
-    enum: ['Pending', 'Success', 'Timeout', 'Cancel']
-  },
-  changeAt: Date
-});
-
-var userSchema = new mongoose.Schema({
-  username: String
-});
-
-var totalSchema = new mongoose.Schema({
-  success: Number,
-  timeout: Number,
-  cancel: Number,
-  pending: Number,
-});
-var daySchema = new mongoose.Schema({
-  date: Date,
-  success: Number,
-  timeout: Number,
-  cancel: Number,
-  pending: Number
-});
-
-var dayDetailSchema = new mongoose.Schema({
-  date: Date,
-  success: [userSchema],
-  timeout: [userSchema],
-  cancel: [userSchema],
-  pending: [userSchema]
-
-});
-
-var UserRequestReport = mongoose.model('UserRequestReport', {
-  username: String,
-  date: Date,
-  total: totalSchema,
-  days: [daySchema],
-  detailDays: [dayDetailSchema]
-});
-
+UserRequest = require('./models/stats').UserRequest;
+UserRequestReport = require('./models/stats').UserRequestReport;
+const pendingDays = 7;
 
 var reset = (username) => {
   return new Promise(function (resolve, reject) {
@@ -140,7 +79,7 @@ var updateUserRequest = (username, followers) => {
   timeoutPorcesed = false;
   var promiseFn = (resolve, reject) => {
     var date = new Date();
-    date.setDate(date.getDate() - 7);
+    date.setDate(date.getDate() - pendingDays);
     var counter = 0;
 
     UserRequest.find({
