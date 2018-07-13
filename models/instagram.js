@@ -36,6 +36,7 @@ var KeyUser = mongoose.model('KeyUser', {
 
 var UserDayFollwerKey = mongoose.model('UserDayFollwerKey', {
   date: Date,
+  username: String,
   keyFollowers: [String]
 });
 
