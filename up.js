@@ -135,7 +135,7 @@ const setUserConfig = (username) => {
         trace(`The user '${username}' has available a ${availablePercentByUserSegmets}% of users.`);
       });
 
-      getUserInfo(currentLoginUser, env !== 'dev').then(function (info) {
+      getUserInfo(currentLoginUser, env !== 'dev', true).then(function (info) {
         userInfo = {
           currentUserInfo: info
         };
@@ -985,7 +985,7 @@ const getUserInfoByUserName = (loginUser, username) => {
 };
 
 
-const getUserInfo = (loginUser, useCacheData) => {
+const getUserInfo = (loginUser, useCacheData, useLightFollowers) => {
   var promise = new Promise(function (resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
       .then(function (session) {
@@ -1008,11 +1008,18 @@ const getUserInfo = (loginUser, useCacheData) => {
         trace('[OK]');
         data.followings = followings;
         trace('Getting ' + loginUser.username + ' followers');
-        return [data, getFollowers(data.currentUser, data.followerCount, false, useCacheData, true)];
+        return [data, getFollowers(data.currentUser, data.followerCount, false, useCacheData, useLightFollowers)];
       })
-      .spread(function (data, followers) {
+      .spread(function (data, response) {
         trace('[OK]');
-        data.followers = followers;
+        data.itemfollowers = [];
+        data.lightMode = false;
+        if (response && response.followers) {
+          data.followers = response.followers;
+        }
+        if (response) {
+          data.lightMode = response.lightMode;
+        }
         resolve(data);
       });
   });
@@ -1055,7 +1062,11 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFoll
             clearInterval(timeoutObj);
             printPercent(100);
             fs.writeFileSync(cacheFile, JSON.stringify(feedsDone), 'utf-8');
-            resolve(feedsDone);
+            var obj = {
+              lightMode: lightMode,
+              followers: feedsDone
+            }
+            resolve(obj);
           } else {
             if (env === 'dev') {
               printPercent(counter / followerCount * 100.0);
