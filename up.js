@@ -1270,12 +1270,16 @@ const createFile = filename => {
 };
 
 const setDayFollowers = (lastFollowers) => {
+  if (!currentLoginUser || !currentLoginUser.username) {
+    return;
+  }
   var date = new Date();
   var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
   getDayFollowers().then((followers) => {
     if (!followers) {
       UserDayFollwerKey.create({
         date: utcDate,
+        username: currentLoginUser.username
         keyFollowers: lastFollowers.map((f) => f.username).reverse()
       })
     }
@@ -1283,6 +1287,9 @@ const setDayFollowers = (lastFollowers) => {
 };
 
 const getDayFollowers = (last) => {
+  if (!currentLoginUser || !currentLoginUser.username) {
+    return;
+  }
   return new Promise(function (resolve, reject) {
     var date = new Date();
     var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
@@ -1290,7 +1297,8 @@ const getDayFollowers = (last) => {
       utcDate.setDate(utcDate.getDate() - pendingDays);
     }
     UserDayFollwerKey.findOne({
-      date: utcDate
+      date: utcDate,
+      currentLoginUser.username
     }).then((response) => {
       if (response && response.keyFollowers) {
         resolve(response.keyFollowers)
