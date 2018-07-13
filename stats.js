@@ -233,12 +233,11 @@ var buildUserRequestReportEntity = (items, username, month, year, detailEntity) 
     var toDate = new Date(startDate.getTime());
     toDate.setDate(startDate.getDate() + (i + 1));
     var founds = items.filter(item => {
-      if (item.state === 'Pending') {
-        return fromDate <= item.created && item.created < toDate;
-      } else {
+      if (item.state === 'Success') {
         return fromDate <= item.changeAt && item.changeAt < toDate;
+      } else {
+        return fromDate <= item.created && item.created < toDate;
       }
-
     });
 
     if (founds && founds.length > 0) {
