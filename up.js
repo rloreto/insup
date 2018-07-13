@@ -1279,7 +1279,7 @@ const setDayFollowers = (lastFollowers) => {
     if (!followers) {
       UserDayFollwerKey.create({
         date: utcDate,
-        username: currentLoginUser.username
+        username: currentLoginUser.username,
         keyFollowers: lastFollowers.map((f) => f.username).reverse()
       })
     }
