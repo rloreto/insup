@@ -1298,7 +1298,7 @@ const getDayFollowers = (last) => {
     }
     UserDayFollwerKey.findOne({
       date: utcDate,
-      currentLoginUser.username
+      username: currentLoginUser.username
     }).then((response) => {
       if (response && response.keyFollowers) {
         resolve(response.keyFollowers)
