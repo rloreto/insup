@@ -1055,6 +1055,7 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFoll
   var promise = new Promise(function (resolve) {
     if (!fs.existsSync(cacheFile) || useCacheData) {
       trace('Getting followers from live. NO CACHE');
+      //getLastDayFollowersByDays();;
       getDayFollowers(true).then((keyFollowers) => {
         var lightMode = (keyFollowers && keyFollowers.length > 0) && useLightFollowers;
         var timeoutObj = setInterval(function () {
@@ -1323,7 +1324,26 @@ const getDayFollowers = (last) => {
   });
 };
 
-
+const getLastDayFollowersByDays = () => {
+  if (!currentLoginUser || !currentLoginUser.username) {
+    return;
+  }
+  return new Promise(function (resolve, reject) {
+    var promises = []
+    for (i = 0; i <= pendingDays; i++) {
+      var date = new Date();
+      var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
+      utcDate.setDate(utcDate.getDate() - i);
+      promises.push(UserDayFollwerKey.findOne({
+        date: utcDate,
+        username: currentLoginUser.username
+      }).exec());
+    }
+    Promise.all(promises).then((data) => {
+      resolve();
+    });
+  });
+}
 
 const updateKeyUsers = (targetUsername) => {
   console.log('Update key user from dropbox to: ' + targetUsername);

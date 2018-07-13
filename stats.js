@@ -107,8 +107,6 @@ var updateUserRequest = (username, followers) => {
               item.changeAt = new Date();
               item.state = 'Success';
               promises.push(item.save());
-            } else {
-              //TODO Find external followers success 
             }
           });
           console.log("[End] Matching requested users and followers");
