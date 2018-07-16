@@ -97,6 +97,7 @@ const setUserConfig = (username) => {
           maxConsecutiveRemoveOperations: 5,
           waitBetweenOperationMinutes: 3,
           loadConfigurationUpdateFrecuencyMinutes: 5,
+          likesPerNewPublicRelationship: 0,
           segments: ["weddings"]
         };
       } else {
@@ -111,6 +112,7 @@ const setUserConfig = (username) => {
           maxConsecutiveRemoveOperations: user.maxConsecutiveRemoveOperations,
           waitBetweenOperationMinutes: user.waitBetweenOperationMinutes,
           loadConfigurationUpdateFrecuencyMinutes: user.loadConfigurationUpdateFrecuencyMinutes,
+          likesPerNewPublicRelationship: user.likesPerNewPublicRelationship,
           segments: user.segments
         };
       }
@@ -126,6 +128,7 @@ const setUserConfig = (username) => {
       maxConsecutiveRemoveOperations = config.maxConsecutiveRemoveOperations
       waitBetweenOperationMinutes = config.waitBetweenOperationMinutes
       loadConfigurationUpdateFrecuencyMinutes = config.loadConfigurationUpdateFrecuencyMinutes
+      likesPerNewPublicRelationship = config.likesPerNewPublicRelationship
       segments = config.segments
 
       trace(JSON.stringify(config));
@@ -149,7 +152,7 @@ const setUserConfig = (username) => {
             .then(() => {
               console.log('[End] Updating user requested.');
               console.log('[Begin] Generating report user request data.');
-              return prepareReport(currentLoginUser.username);
+              return prepareReport(currentLoginUser.username, userInfo.currentUserInfo.followers);
             })
             .then((data) => {
               console.log('[End] Generating report user request data.');
@@ -275,9 +278,22 @@ const isActivityPeriod = () => {
   var now = new Date();
 
   var ini = new Date();
+  var lastDay = new Date()
+  lastDay.setDate(lastDay.getDate() - 1);
+  lastDay.setHours(startHour);
+  lastDay.setMinutes(0);
+  lastDay.setSeconds(0);
+  lastDay.addHours(activityHours);
+
+  if (now <= lastDay) {
+    var temp = new Date();
+    ini = new Date(temp.setDate(temp.getDate() - 1));
+  }
+
   ini.setHours(startHour);
   ini.setMinutes(0);
   ini.setSeconds(0);
+
   var end = new Date(ini.getTime());
   end.addHours(activityHours);
 
@@ -360,8 +376,9 @@ const start = loginUser => {
                     var follower = getInfo(response, currentLoginUser.username, 'isFollower');
                     if (!follower) {
                       createRelationship(item.username, segments, onlyPublic)
-                        .then(added => {
-                          if (added) {
+                        .then(data => {
+                          if (data && data.user && data.session) {
+                            addLikesToUser(data.user, data.session)
                             addUserRequest(loginUser.username, item.username)
                               .then(() => {
                                 //console.log();
@@ -396,8 +413,8 @@ const start = loginUser => {
                                 pause = false;
                                 isLoading = false;
                               });
-                            } else if (e.message === "no relationship") {
-                              trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                            } else if (e.message === "user.friendshipStatus.outgoing_request") {
+                              trace('Ignore follower relationship (outgoing_request): ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
                             } else {
                               trace(e);
                             }
@@ -436,6 +453,35 @@ const start = loginUser => {
 
 
   }
+};
+
+addLikesToUser = (user, session) => {
+
+  if (likesPerNewPublicRelationship && user && !user.isPrivate) {
+    var feed = new Client.Feed.UserMedia(session, user.id);
+    Promise.mapSeries(_.range(0, likesPerNewPublicRelationship), function () {
+        return feed.get();
+      })
+      .then(function (results) {
+        var media = _.flatten(results);
+        if (media && media.length > 0) {
+          var ids = _.range(1, media.length);
+          ids = shuffle(ids);
+          var promises = [Client.Like.create(session, media[0].id)];
+          if (ids.length > 0) {
+            for (var i = 0; i < likesPerNewPublicRelationship - 1; i++) {
+              promises.push(Client.Like.create(session, media[ids[i]].id));
+            }
+          }
+          Promise.all(promises).then((data) => {
+            data.forEach((currentValue, index) => {
+              trace("Created like to username: " + user.username + " [" + (index + 1) + "/ " + likesPerNewPublicRelationship + "]");
+            })
+          });
+        }
+      })
+  }
+
 };
 
 const removeNotFollowers = (loginUser, forze) => {
@@ -715,7 +761,7 @@ const createRelationship = (username, segments, onlyPublic) => {
           if (onlyPublic) {
             if (!user.friendshipStatus.is_private) {
               trace('Creating relationship to ' + username);
-              return Client.Relationship.create(currentSession, user.id);
+              return [user, response.session, Client.Relationship.create(currentSession, user.id)];
             } else {
               return getUserFromDb(username).then(
                 user => {
@@ -731,46 +777,46 @@ const createRelationship = (username, segments, onlyPublic) => {
             }
           } else {
             trace('Creating relationship to ' + username);
-            return Client.Relationship.create(currentSession, user.id);
+            return [user, response.session, Client.Relationship.create(currentSession, user.id)];
           }
         } else {
           var attempts = getAttempts(username, currentLoginUser.username);
           if (!attempts) {
-            return getUserFromDb(username).then((item) => {
+            getUserFromDb(username).then((item) => {
               if (item) {
                 setAttempts(item, currentLoginUser.username, 1);
                 item.save();
               }
             })
+
           }
           const error = new Error();
           error.message = "user.friendshipStatus.outgoing_request";
           reject(error);
+          return [];
         }
       }).catch(e => {
         reject(e);
-      }).then(relationship => {
+      }).spread((user, session, relationship) => {
         if (relationship) {
-          return getUserFromDb(username);
+          return [user, session, getUserFromDb(username)];
         } else {
-          const error = new Error();
-          error.message = "no relationship";
-          reject(error);
+          return [];
         }
-      })
-      .then(user => {
-        if (user) {
-          var attempts = getAttempts(user, username);
+      }).spread((user, session, userDb) => {
+        if (userDb) {
+          var attempts = getAttempts(userDb, username);
           attempts++;
-          setAttempts(user, currentLoginUser.username, attempts++);
-          user.save((err, response) => {
+          setAttempts(userDb, currentLoginUser.username, attempts++);
+          userDb.save((err, response) => {
             if (!err) {
               trace('[OK]');
-              resolve(true);
+              resolve({
+                user: user,
+                session: session
+              });
             }
           });
-        } else {
-          resolve(false);
         }
       });
 
@@ -913,6 +959,18 @@ const setUnfollowed = (username, unfollowBy, segments) => {
 
 };
 
+shuffle = function (array) {
+  var tmp, current, top = array.length;
+  if (top)
+    while (--top) {
+      current = Math.floor(Math.random() * (top + 1));
+      tmp = array[current];
+      array[current] = array[top];
+      array[top] = tmp;
+    }
+  return array;
+}
+
 const getUserId = (loginUser, username) => {
   var promise = new Promise(function (resolve) {
     Client.Session.create(device, storage, loginUser.username, loginUser.password)
@@ -921,12 +979,13 @@ const getUserId = (loginUser, username) => {
           currentSession: session
         };
         currentSession = session;
-        return Client.Account.searchForUser(session, username);
+        return [session, Client.Account.searchForUser(session, username)];
       })
-      .then(function (user) {
+      .spread(function (session, user) {
         resolve({
           hasError: false,
-          data: user._params
+          data: user._params,
+          session: session
         });
       })
       .catch(function (e) {
@@ -1055,9 +1114,11 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFoll
   var promise = new Promise(function (resolve) {
     if (!fs.existsSync(cacheFile) || useCacheData) {
       trace('Getting followers from live. NO CACHE');
-      //getLastDayFollowersByDays();;
-      getDayFollowers(true).then((keyFollowers) => {
-        var lightMode = (keyFollowers && keyFollowers.length > 0) && useLightFollowers;
+      Promise.all([
+        getDayFollowers(true)
+      ]).then((data) => {
+        var lastKeyFollowers = data[0];
+        var lightMode = (lastKeyFollowers && lastKeyFollowers.length > 0) && useLightFollowers;
         var timeoutObj = setInterval(function () {
           if (counter > followerCount) {
             clearInterval(timeoutObj);
@@ -1075,7 +1136,6 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFoll
 
             if (getMore) {
               getMore = false;
-
               accountFollowers.get().then(function (results) {
                 if (results && results.length > 0) {
                   var data = _.flattenDeep(results);
@@ -1084,16 +1144,14 @@ const getFollowers = (user, followerCount, saveUsers, useCacheData, useLightFoll
                   });
                   var contains = false;
                   if (lightMode) {
-                    contains = containsAnyKeyFollower(followers.map((f) => f.username), keyFollowers);
+                    contains = containsAnyKeyFollower(followers.map((f) => f.username), lastKeyFollowers);
                   }
 
                   if (!contains) {
-
                     if (!dayFollowers) {
                       setDayFollowers(followers);
                       dayFollowers = true;
                     }
-
                     if (saveUsers) {
                       saveUpdateFollowers(page, followers, user.id).then(function (followers) {
                         Array.prototype.push.apply(feedsDone, followers);
@@ -1323,27 +1381,6 @@ const getDayFollowers = (last) => {
     })
   });
 };
-
-const getLastDayFollowersByDays = () => {
-  if (!currentLoginUser || !currentLoginUser.username) {
-    return;
-  }
-  return new Promise(function (resolve, reject) {
-    var promises = []
-    for (i = 0; i <= pendingDays; i++) {
-      var date = new Date();
-      var utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0));
-      utcDate.setDate(utcDate.getDate() - i);
-      promises.push(UserDayFollwerKey.findOne({
-        date: utcDate,
-        username: currentLoginUser.username
-      }).exec());
-    }
-    Promise.all(promises).then((data) => {
-      resolve();
-    });
-  });
-}
 
 const updateKeyUsers = (targetUsername) => {
   console.log('Update key user from dropbox to: ' + targetUsername);

@@ -39,7 +39,8 @@ var DayDetailSchema = new mongoose.Schema({
   success: [UserSchema],
   timeout: [UserSchema],
   cancel: [UserSchema],
-  pending: [UserSchema]
+  pending: [UserSchema],
+  noMachineFollowers: [UserSchema]
 
 });
 

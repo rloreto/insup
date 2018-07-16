@@ -26,6 +26,7 @@ var User = mongoose.model('User', {
   maxConsecutiveRemoveOperations: Number,
   waitBetweenOperationMinutes: Number,
   loadConfigurationUpdateFrecuencyMinutes: Number,
+  likesPerNewPublicRelationship: Number,
   segments: []
 });
 
