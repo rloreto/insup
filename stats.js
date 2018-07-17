@@ -351,6 +351,7 @@ const getLastDayFollowersByDays = (followers) => {
     }
     var dayFollowers = [];
     return Promise.all(promises).then((data) => {
+      var data = data.filter(Boolean);
       var usernamesFollowers = followers.map((f) => f.username);
       for (var i = 0; i < data.length; i++) {
         var indexBegin, indexEnd;
