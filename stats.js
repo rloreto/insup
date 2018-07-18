@@ -312,13 +312,14 @@ var updateUserRequestReport = (entity, username, month, year, followers) => {
   var startDate = new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0));
   var promise = new Promise(function (resolve, reject) {
 
-    updateNoMachineFollowers(entity, followers).then((item) => {
-        return UserRequestReport.remove({
+    updateNoMachineFollowers(entity, followers).then((updateEntity) => {
+        entity = updateEntity;
+        return [UserRequestReport.remove({
           date: startDate,
           username: username
-        });
+        }), entity];
       })
-      .then((item) => {
+      .spread((item, entity) => {
         return UserRequestReport.create(entity)
       }).then((item) => {
         console.log("[End] Preparing " + month + "/" + year);
@@ -328,9 +329,6 @@ var updateUserRequestReport = (entity, username, month, year, followers) => {
         reject(err);
       });
   });
-
-
-
   return promise;
 }
 

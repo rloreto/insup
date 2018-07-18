@@ -25,13 +25,15 @@ var TotalSchema = new mongoose.Schema({
   timeout: Number,
   cancel: Number,
   pending: Number,
+  noMachineFollowers: Number
 });
 var DaySchema = new mongoose.Schema({
   date: Date,
   success: Number,
   timeout: Number,
   cancel: Number,
-  pending: Number
+  pending: Number,
+  noMachineFollowers: Number
 });
 
 var DayDetailSchema = new mongoose.Schema({
