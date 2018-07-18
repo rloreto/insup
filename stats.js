@@ -417,6 +417,13 @@ var updateNoMachineFollowers = (reportData, followers) => {
         }
       });
 
+      reportData.days.forEach((day) => {
+        var nomachine = noMachineFollowers.find(i => i.date.getDate() === day.date.getDate() && i.date.getMonth() === day.date.getMonth() && i.date.getYear() === day.date.getYear());
+        if (nomachine) {
+          day.noMachineFollowers = nomachine.followers.length;
+        }
+      });
+
       resolve(reportData);
     }).catch((err) => {
       console.log(err);
