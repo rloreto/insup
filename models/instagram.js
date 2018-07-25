@@ -1,6 +1,6 @@
 var Mongoose = require('mongoose').Mongoose;
 var mongoose = new Mongoose();
-mongoose.set('debug', true)
+//mongoose.set('debug', true)
 var Promise = require('bluebird');
 
 var user_mongo = process.env.USER_MONGO;
