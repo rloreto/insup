@@ -415,11 +415,15 @@ const start = loginUser => {
                               });
                             } else if (e.message === "user.friendshipStatus.outgoing_request") {
                               trace('Ignore follower relationship (outgoing_request): ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
+                              isLoading = false;
+                              return null;
                             } else {
                               trace(e);
+                              isLoading = false;
+                              return null;
                             }
                           }
-                          isLoading = false;
+
                         })
                     } else {
                       trace('Ignore follower relationship: ' + item.username + ' ' + (counter + 1) + ' (' + internalCounter + ') of ' + max + ' (' + (targetUsers.length - internalCounter) + ')');
@@ -627,7 +631,7 @@ const setInfo = (user, currentUsername, property, value) => {
       }
       obj[property] = value;
 
-      user.info.push(obj)
+      user.info = user.info.concat([obj])
     } else {
       found[property] = value;
     }
@@ -636,7 +640,7 @@ const setInfo = (user, currentUsername, property, value) => {
       un: currentUsername
     }
     obj[property] = value;
-    user.info.push(obj)
+    user.info = user.info.concat([obj])
   }
 }
 
@@ -890,18 +894,18 @@ const setAttempts = (user, currentUsername, value) => {
       return item.un === currentUsername
     });
     if (!found) {
-      user.attempts.push({
+      user.attempts = user.attempts.concat([{
         un: currentUsername,
         n: value
-      })
+      }])
     } else {
       found.n = value;
     }
   } else {
-    user.attempts.push({
+    user.attempts = user.attempts.concat([{
       un: currentUsername,
       n: value
-    })
+    }])
   }
 
 }
@@ -931,19 +935,19 @@ const setUnfollowed = (username, unfollowBy, segments) => {
             });
 
             if (!found) {
-              user.info.push({
+              user.info = user.info.concat([{
                 un: unfollowBy,
                 unfollowed: true
-              });
+              }]);
             } else {
               found.unfollowed = true;
             }
 
           } else {
-            user.info.push({
+            user.info = user.info.concat([{
               un: unfollowBy,
               unfollowed: true
-            });
+            }]);
           }
           user.save(function (err) {
             if (err) {
