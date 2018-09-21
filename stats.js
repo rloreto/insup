@@ -183,26 +183,20 @@ var prepareReportByMonth = (username, month, year, followers) => {
     }).then((num) => {
       var counter = 0;
 
-      var n = parseInt(num / 30) + 1;
+
       var promises = [];
 
-
-
-      for (var i = 0; i < n; i++) {
-        var p = UserRequest.find({
-            username: username,
-            created: {
-              $gte: new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0))
-            },
-            created: {
-              $lt: new Date(Date.UTC(after.year, (after.month - 1), 1, 0, 0, 0, 0))
-            }
-          })
-          .limit(perPage)
-          .skip(perPage * i)
-          .exec();
-        promises.push(p);
-      }
+      var p = UserRequest.find({
+          username: username,
+          created: {
+            $gte: new Date(Date.UTC(year, (month - 1), 1, 0, 0, 0, 0))
+          },
+          created: {
+            $lt: new Date(Date.UTC(after.year, (after.month - 1), 1, 0, 0, 0, 0))
+          }
+        })
+        .exec();
+      promises.push(p);
 
       return Promise.all(promises).then((items) => {
         items = [].concat.apply([], items);
